@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import * as schema from "./schema";
 import { dueDate, tasksFor } from "../lib/rules/incidents";
+import { DEFAULT_CHECKS, MANDATORY_COURSES } from "../lib/rules/operations";
 
 /**
  * Demo data. All names fictional. Every role has a login so each screen can
@@ -281,8 +282,74 @@ async function main() {
   // Minor accident for Amelia, low severity
   await seedIncident(amelia, { type: "accident", severity: "low", occurredAt: daysAgo(2), location: "Kitchen", narrative: "Amelia caught her hand on the oven door while taking out a tray. Small red mark, no blister. Ran under cold water for 10 minutes.", immediateActions: "Cold water, checked after an hour — no blister.", injuries: "Minor burn to left hand, first aid given.", notifyPlacingAuthority: false });
 
+  // ---- Home operations ----
+  const careStaff = people.filter((p) => ["registered_manager", "deputy", "care_worker"].includes(p.role));
+  for (const [i, p] of careStaff.entries()) {
+    const uid = byEmail[p.email]; const homeId = p.home!.id;
+    const start = daysAgo(120 + i * 200);
+    const complete = i !== 3; // Liam's file has gaps
+    await db.insert(schema.staffRecords).values({
+      organisationId: org.id, homeId, userId: uid, jobTitle: p.role === "registered_manager" ? "Registered Manager" : p.role === "deputy" ? "Deputy Manager" : "Residential Support Worker",
+      startDate: start, probationEndsOn: new Date(start.getTime() + 180 * 86_400_000), idVerifiedOn: start, photoOnFile: true,
+      dbsNumber: `00123${i}567890`, dbsIssuedOn: new Date(start.getTime() - 20 * 86_400_000), dbsUpdateService: i % 2 === 0,
+      reference1ReceivedOn: start, reference1From: "Previous employer", reference2ReceivedOn: complete ? start : null, reference2From: complete ? "Character reference" : null,
+      previousCareEmployerVerifiedOn: complete ? start : null, qualificationsVerifiedOn: start, employmentHistoryCompleteOn: start, rightToWorkVerifiedOn: start, healthDeclarationOn: complete ? start : null,
+      level3Qualification: p.role === "care_worker" && i === 3 ? null : "Level 3 Diploma for Residential Childcare", level3AchievedOn: p.role === "care_worker" && i === 3 ? null : daysAgo(400),
+      level5Qualification: p.role === "registered_manager" ? "Level 5 Diploma in Leadership and Management for Residential Childcare" : null, level5AchievedOn: p.role === "registered_manager" ? daysAgo(800) : null,
+      inductionCompletedOn: new Date(start.getTime() + 14 * 86_400_000), updatedBy: byEmail["director@demo.kaizen"],
+    });
+    const supervisor = p.role === "registered_manager" ? byEmail["ri@demo.kaizen"] : homeId === oak.id ? byEmail["rm.oak@demo.kaizen"] : byEmail["rm.willow@demo.kaizen"];
+    const lastSup = i === 5 ? daysAgo(70) : daysAgo(20 + i * 5); // Liam overdue
+    await db.insert(schema.supervisions).values([
+      { organisationId: org.id, homeId, staffUserId: uid, supervisorUserId: supervisor, heldOn: new Date(lastSup.getTime() - 42 * 86_400_000), kind: "supervision", wellbeing: "Doing well, managing shifts.", caseDiscussion: "Discussed key children and contact arrangements.", safeguardingDiscussed: true, actions: "Complete online safety refresher.", nextDueOn: lastSup, staffSignedAt: lastSup, supervisorSignedAt: lastSup, createdBy: supervisor },
+      { organisationId: org.id, homeId, staffUserId: uid, supervisorUserId: supervisor, heldOn: lastSup, kind: "supervision", wellbeing: "Tired after a run of nights; annual leave booked.", caseDiscussion: "Reflected on the recent missing episode and the trigger plan.", practiceAndDevelopment: "Would like to lead on key-work planning.", safeguardingDiscussed: true, actions: "Shadow deputy on next Reg 44 visit.", nextDueOn: new Date(lastSup.getTime() + 42 * 86_400_000), supervisorSignedAt: lastSup, staffSignedAt: i % 2 ? null : lastSup, createdBy: supervisor },
+    ]);
+    for (const [j, course] of MANDATORY_COURSES.entries()) {
+      if (i === 3 && j >= 7) continue; // Liam missing three mandatory courses
+      const completed = daysAgo(300 + j * 17 + i * 11);
+      const expires = new Date(completed.getTime() + (j === 2 ? 3 * 365 : j === 1 ? 365 : 2 * 365) * 86_400_000);
+      await db.insert(schema.trainingRecords).values({ organisationId: org.id, homeId, staffUserId: uid, course, provider: ["In-house", "Local safeguarding partnership", "Team Teach", "St John Ambulance"][j % 4], completedOn: completed, expiresOn: i === 0 && j === 1 ? daysAgo(10) : expires, createdBy: byEmail["director@demo.kaizen"] });
+    }
+  }
+  // Checks schedule for both homes, with Oak mostly in date and one overdue
+  for (const h of [oak, willow]) {
+    const types = await db.insert(schema.checkTypes).values(DEFAULT_CHECKS.map((c) => ({ ...c, organisationId: org.id, homeId: h.id, createdAt: daysAgo(200) }))).returning();
+    const cw = h.id === oak.id ? byEmail["cw1.oak@demo.kaizen"] : byEmail["cw1.willow@demo.kaizen"];
+    for (const t of types) {
+      const ago = t.name === "Emergency lighting test" && h.id === oak.id ? 45 : Math.min(t.frequencyDays - 1, 5);
+      await db.insert(schema.checkResults).values({ organisationId: org.id, homeId: h.id, checkTypeId: t.id, checkedOn: daysAgo(ago), passed: true, checkedBy: cw });
+    }
+  }
+  // Medication
+  const amelia2 = placed.find((c) => c.firstName === "Amelia")!;
+  const [sert] = await db.insert(schema.medications).values({ organisationId: org.id, homeId: oak.id, childId: amelia2.id, name: "Sertraline", dose: "50mg", route: "oral", frequency: "08:00", prescribedBy: "Dr Khan (CAMHS)", reason: "Low mood", startOn: daysAgo(90), stockCount: 18, consentRecordedOn: daysAgo(90), createdBy: byEmail["rm.oak@demo.kaizen"] }).returning();
+  await db.insert(schema.medications).values({ organisationId: org.id, homeId: oak.id, childId: amelia2.id, name: "Paracetamol", dose: "500mg–1g", route: "oral", frequency: "As required", prn: true, prnInstructions: "Max 4 doses in 24h, at least 4 hours apart", homely: true, startOn: daysAgo(400), stockCount: 24, consentRecordedOn: daysAgo(400), createdBy: byEmail["rm.oak@demo.kaizen"] });
+  for (let i = 1; i <= 7; i++) {
+    const at = new Date(daysAgo(i).getTime() + 8 * 3_600_000);
+    await db.insert(schema.marEntries).values({ organisationId: org.id, homeId: oak.id, childId: amelia2.id, medicationId: sert.id, administeredAt: at, outcome: i === 4 ? "refused" : "given", doseGiven: "50mg", administeredBy: byEmail["cw1.oak@demo.kaizen"], stockAfter: 18 + i - (i >= 4 ? 1 : 0), notes: i === 4 ? "Declined; said she felt sick. Offered again at 10:00, declined. GP practice informed." : null });
+  }
+  // Maintenance, petty cash, documents
+  await db.insert(schema.maintenanceItems).values([
+    { organisationId: org.id, homeId: oak.id, reportedOn: daysAgo(3), reportedBy: byEmail["cw1.oak@demo.kaizen"], location: "Bathroom 1", description: "Extractor fan not working", priority: "routine" },
+    { organisationId: org.id, homeId: oak.id, reportedOn: daysAgo(1), reportedBy: byEmail["cw2.oak@demo.kaizen"], location: "Garden", description: "Fence panel loose next to the gate", priority: "urgent", safetyRisk: true },
+    { organisationId: org.id, homeId: oak.id, reportedOn: daysAgo(20), reportedBy: byEmail["cw1.oak@demo.kaizen"], location: "Kitchen", description: "Oven door seal split", priority: "routine", status: "done", resolvedOn: daysAgo(15), resolution: "Seal replaced by engineer." },
+  ]);
+  await db.insert(schema.moneyLedger).values([
+    { organisationId: org.id, homeId: oak.id, childId: null, entryOn: daysAgo(14), description: "Float top-up", amountPence: 20000, receiptHeld: true, recordedBy: byEmail["rm.oak@demo.kaizen"] },
+    { organisationId: org.id, homeId: oak.id, childId: null, entryOn: daysAgo(6), description: "Food shop — Aldi", amountPence: -5770, receiptHeld: true, recordedBy: byEmail["cw1.oak@demo.kaizen"] },
+    { organisationId: org.id, homeId: oak.id, childId: null, entryOn: daysAgo(2), description: "Bus fares to school", amountPence: -1200, receiptHeld: false, recordedBy: byEmail["cw2.oak@demo.kaizen"] },
+    { organisationId: org.id, homeId: oak.id, childId: amelia2.id, entryOn: daysAgo(7), description: "Weekly allowance", amountPence: 1500, receiptHeld: true, recordedBy: byEmail["cw1.oak@demo.kaizen"] },
+    { organisationId: org.id, homeId: oak.id, childId: amelia2.id, entryOn: daysAgo(5), description: "Cinema with friends", amountPence: -850, receiptHeld: true, recordedBy: byEmail["cw1.oak@demo.kaizen"], witnessedBy: byEmail["cw2.oak@demo.kaizen"] },
+  ]);
+  await db.insert(schema.homeDocuments).values([
+    { organisationId: org.id, homeId: oak.id, kind: "statement_of_purpose", title: "Oak House Statement of Purpose", version: "4.0", effectiveFrom: daysAgo(100), reviewDueOn: inDays(265), summaryOfChanges: "Updated staffing structure and behaviour support approach.", ofstedNotifiedOn: daysAgo(98), createdBy: byEmail["rm.oak@demo.kaizen"] },
+    { organisationId: org.id, homeId: oak.id, kind: "childrens_guide", title: "Oak House Children's Guide", version: "3.0", effectiveFrom: daysAgo(100), reviewDueOn: inDays(265), createdBy: byEmail["rm.oak@demo.kaizen"] },
+    { organisationId: org.id, homeId: oak.id, kind: "policy", title: "Missing from Care Policy", version: "2.1", effectiveFrom: daysAgo(200), reviewDueOn: daysAgo(5), createdBy: byEmail["ri@demo.kaizen"] },
+    { organisationId: org.id, homeId: oak.id, kind: "policy", title: "Safeguarding and Child Protection Policy", version: "5.0", effectiveFrom: daysAgo(60), reviewDueOn: inDays(300), createdBy: byEmail["ri@demo.kaizen"] },
+  ]);
+
   await client.end();
-  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children with daily records and incidents. Password for all: ${DEMO_PASSWORD}`);
+  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children with daily records, incidents and home operations. Password for all: ${DEMO_PASSWORD}`);
 }
 
 main().catch((e) => {

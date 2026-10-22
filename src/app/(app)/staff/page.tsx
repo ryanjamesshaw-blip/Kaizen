@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/guard";
 import { listStaff, listVisibleHomes, primaryOrganisation } from "@/lib/homes/queries";
 import { revokeAccess } from "@/lib/staff/actions";
@@ -40,7 +41,7 @@ export default async function StaffPage() {
               const mayRevoke = active && s.userId !== user.id && (isOrgScope(s.role) ? orgManage : can(user.grants, "access:grant", { organisationId: org.id, homeId: s.homeId }));
               return (
                 <tr key={s.membershipId} className={active ? "" : "opacity-60"}>
-                  <td>{s.fullName}<div className="text-xs text-muted">{s.email}</div></td>
+                  <td><Link href={`/staff/${s.userId}`} className="font-medium text-brand hover:underline">{s.fullName}</Link><div className="text-xs text-muted">{s.email}</div></td>
                   <td>{ROLE_LABELS[s.role]}</td>
                   <td>{s.homeName ?? <span className="text-muted">All homes</span>}</td>
                   <td>{s.revokedAt ? <span className="pill">Revoked {fmtDate(s.revokedAt)}</span> : expired ? <span className="pill">Expired</span> : s.validTo ? <span className="pill">Until {fmtDate(s.validTo)}</span> : <span className="pill">Ongoing</span>}</td>

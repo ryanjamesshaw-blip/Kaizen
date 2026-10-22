@@ -9,6 +9,8 @@ import { listVisibleChildren, riskOverviewForHome, ageOn, fullName } from "@/lib
 import { isOverdue } from "@/lib/records/lifecycle";
 import { LevelPill, StatusPill, fmtDate } from "@/components/record-status";
 import { homeIncidentSummary } from "@/lib/incidents/queries";
+import { checksBoard, staffCompliance, homeDocumentsList } from "@/lib/operations/queries";
+import { nowMs } from "@/lib/time";
 
 export default async function HomePage({ params }: { params: Promise<{ homeId: string }> }) {
   const { homeId } = await params;
@@ -34,6 +36,21 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
     riskOverviewForHome(user, home.organisationId, home.id),
     homeIncidentSummary(home.id),
   ]);
+  const now = new Date(nowMs());
+  const [checks, team, hdocs] = await Promise.all([checksBoard(home.id, now), staffCompliance(home.organisationId, home.id, now), homeDocumentsList(home.id)]);
+  const checksOverdue = checks.filter((c) => c.status === "overdue").length;
+  const supOverdue = team.filter((t) => t.supervisionStatus === "overdue" || t.supervisionStatus === "never").length;
+  const sch2 = team.filter((t) => t.schedule2Missing.length > 0).length;
+  const trainingExpired = team.reduce((n, t) => n + t.training.expired, 0);
+  const sopOk = hdocs.some((d) => d.current && d.d.kind === "statement_of_purpose");
+  const ops = [
+    { href: `/homes/${home.id}/team`, label: "Team compliance", status: supOverdue || sch2 ? `${supOverdue} supervision overdue · ${sch2} incomplete files` : "In order", bad: !!(supOverdue || sch2) },
+    { href: `/homes/${home.id}/checks`, label: "Safety checks & fire", status: checks.length === 0 ? "Not set up" : checksOverdue ? `${checksOverdue} overdue` : "All in date", bad: checks.length === 0 || checksOverdue > 0 },
+    { href: `/homes/${home.id}/medication`, label: "Medication", status: "Register & MAR", bad: false },
+    { href: `/homes/${home.id}/maintenance`, label: "Maintenance", status: "Log", bad: false },
+    { href: `/homes/${home.id}/money`, label: "Petty cash", status: "Ledger", bad: false },
+    { href: `/homes/${home.id}/documents`, label: "Statement of Purpose & policies", status: sopOk ? "SoP on file" : "No Statement of Purpose", bad: !sopOk },
+  ];
   const staff = staffAll.filter((s) => s.homeId === home.id);
   const overdue = risks.filter((r) => isOverdue(r.reviewDueOn) && r.status !== "locked");
   const canAdmit = can(user.grants, "child:write", { organisationId: home.organisationId, homeId: home.id });
@@ -57,6 +74,14 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
         <div className="card"><div className="text-xs uppercase text-muted">Age range</div><div className="text-xl font-semibold">{home.ageRangeMin ?? "—"}–{home.ageRangeMax ?? "—"}</div></div>
         <div className="card"><div className="text-xs uppercase text-muted">Children placed</div><div className="text-xl font-semibold">{kids.length}{home.capacity ? <span className="text-base font-normal text-muted"> / {home.capacity}</span> : null}</div></div>
       </div>
+
+      <section>
+        <h2 className="mb-3 text-base font-semibold">Running the home</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {ops.map((o) => <Link key={o.href} href={o.href} className={`card hover:border-brand ${o.bad ? "border-red-200" : ""}`}><div className="font-medium">{o.label}</div><div className={`text-sm ${o.bad ? "text-danger" : "text-muted"}`}>{o.status}</div></Link>)}
+        </div>
+        {trainingExpired > 0 && <p className="mt-2 text-sm text-danger">{trainingExpired} training certificate{trainingExpired > 1 ? "s" : ""} expired across the team.</p>}
+      </section>
 
       <section className="card">
         <div className="mb-3 flex items-center justify-between">

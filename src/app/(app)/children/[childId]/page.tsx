@@ -42,6 +42,8 @@ export default async function ChildPage({ params }: { params: Promise<{ childId:
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/children/${child.id}/daily`} className="btn">Daily records</Link>
+          <Link href={`/children/${child.id}/medication`} className="btn-ghost">Medication</Link>
+          <Link href={`/children/${child.id}/money`} className="btn-ghost">Money</Link>
           {canWrite && <Link href={`/incidents/new?child=${child.id}`} className="btn-ghost">Record incident</Link>}
           {canWrite && <Link href={`/children/${child.id}/edit`} className="btn-ghost">Edit record</Link>}
           {canDischarge && <Link href={`/children/${child.id}/discharge`} className="btn-ghost">End placement</Link>}

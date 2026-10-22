@@ -39,13 +39,17 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **follow_up_tasks** — ruleKey, title, detail, regulation, ownerRole/ownerUserId, dueAt, status (open/done/not_applicable), completion note
 - Complaint stages table: slice 6
 
-## Home operations — slice 5
+## Home operations — slice 5 (live)
 
-- **staff_record** — role, start date, DBS, references, qualifications (Level 3/5), induction, probation
-- **supervision**, **appraisal**, **training**
-- **medication** and **mar_entry**
-- **check** — fire alarm, drill, water, electrical, vehicle, first aid, window restrictors
-- **maintenance_item**, **petty_cash_entry**, **child_money**
+- **staff_records** — one per user per organisation: employment dates, every Schedule 2 item as a dated field, DBS, Level 3/5, induction
+- **supervisions** — kind (supervision / probation_review / appraisal), headings, safeguarding flag, actions, next due, staff + supervisor signatures
+- **training_records** — course, provider, completed, expires, certificate
+- **medications** — per child: dose, route, frequency, PRN, controlled drug, homely, prescriber, start/end, stock, consent
+- **mar_entries** — outcome (given / refused / missed / not_required / error / destroyed), dose, by, witness, stock after, notes
+- **check_types** (per home, frequency days, regulation) and **check_results** (date, pass/fail, findings, action)
+- **maintenance_items** — priority, safety risk, status, resolution
+- **money_ledger** — home petty cash (childId null) or child money, pence, receipt, witness
+- **home_documents** — Statement of Purpose, Children's Guide, policies; version, effective, review due, Ofsted notified, optional file, supersedes
 
 ## Governance — slice 6
 

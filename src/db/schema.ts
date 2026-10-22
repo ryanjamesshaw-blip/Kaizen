@@ -811,3 +811,261 @@ export type MissingEpisode = typeof missingEpisodes.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type FollowUpTask = typeof followUpTasks.$inferSelect;
 export type IncidentType = (typeof incidentTypeEnum.enumValues)[number];
+
+// ===========================================================================
+// Slice 5 — Home operations: staff fitness (Reg 32 / Sch 2), supervision and
+// appraisal (Reg 33), training, medicines (Reg 23), checks and fire (Reg 25,
+// Sch 4 para 6), maintenance, money (Reg 47, Sch 3 para 7, Sch 4 para 7),
+// Statement of Purpose / Children's Guide / policies (Reg 16, Reg 34).
+// ===========================================================================
+
+export const staffRecords = pgTable(
+  "staff_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").references(() => homes.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    jobTitle: text("job_title"),
+    startDate: timestamp("start_date", { mode: "date" }),
+    probationEndsOn: timestamp("probation_ends_on", { mode: "date" }),
+    // Schedule 2 — fitness evidence
+    idVerifiedOn: timestamp("id_verified_on", { mode: "date" }),
+    photoOnFile: boolean("photo_on_file").notNull().default(false),
+    dbsNumber: text("dbs_number"),
+    dbsIssuedOn: timestamp("dbs_issued_on", { mode: "date" }),
+    dbsUpdateService: boolean("dbs_update_service").notNull().default(false),
+    reference1ReceivedOn: timestamp("reference1_received_on", { mode: "date" }),
+    reference1From: text("reference1_from"),
+    reference2ReceivedOn: timestamp("reference2_received_on", { mode: "date" }),
+    reference2From: text("reference2_from"),
+    previousCareEmployerVerifiedOn: timestamp("previous_care_employer_verified_on", { mode: "date" }),
+    qualificationsVerifiedOn: timestamp("qualifications_verified_on", { mode: "date" }),
+    employmentHistoryCompleteOn: timestamp("employment_history_complete_on", { mode: "date" }),
+    employmentGapsExplained: text("employment_gaps_explained"),
+    rightToWorkVerifiedOn: timestamp("right_to_work_verified_on", { mode: "date" }),
+    healthDeclarationOn: timestamp("health_declaration_on", { mode: "date" }),
+    // Qualification (Reg 32(4): Level 3 within 2 years of start)
+    level3Qualification: text("level3_qualification"),
+    level3AchievedOn: timestamp("level3_achieved_on", { mode: "date" }),
+    level5Qualification: text("level5_qualification"),
+    level5AchievedOn: timestamp("level5_achieved_on", { mode: "date" }),
+    inductionCompletedOn: timestamp("induction_completed_on", { mode: "date" }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: uuid("updated_by").references(() => users.id),
+  },
+  (t) => [uniqueIndex("staff_records_user_org_idx").on(t.userId, t.organisationId)],
+);
+
+export const supervisions = pgTable(
+  "supervisions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    staffUserId: uuid("staff_user_id").notNull().references(() => users.id),
+    supervisorUserId: uuid("supervisor_user_id").notNull().references(() => users.id),
+    heldOn: timestamp("held_on", { mode: "date" }).notNull(),
+    kind: text("kind").notNull().default("supervision"), // supervision | appraisal | probation_review
+    wellbeing: text("wellbeing"),
+    caseDiscussion: text("case_discussion"),
+    practiceAndDevelopment: text("practice_and_development"),
+    safeguardingDiscussed: boolean("safeguarding_discussed").notNull().default(false),
+    actions: text("actions"),
+    nextDueOn: timestamp("next_due_on", { mode: "date" }),
+    staffSignedAt: timestamp("staff_signed_at", { withTimezone: true }),
+    supervisorSignedAt: timestamp("supervisor_signed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("supervisions_staff_idx").on(t.staffUserId, t.heldOn)],
+);
+
+export const trainingRecords = pgTable(
+  "training_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").references(() => homes.id),
+    staffUserId: uuid("staff_user_id").notNull().references(() => users.id),
+    course: text("course").notNull(),
+    provider: text("provider"),
+    completedOn: timestamp("completed_on", { mode: "date" }).notNull(),
+    expiresOn: timestamp("expires_on", { mode: "date" }),
+    certificateRef: text("certificate_ref"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("training_staff_idx").on(t.staffUserId), index("training_expiry_idx").on(t.expiresOn)],
+);
+
+// ---- Medicines (Reg 23) ----
+
+export const medications = pgTable(
+  "medications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    name: text("name").notNull(),
+    dose: text("dose").notNull(),
+    route: text("route").notNull().default("oral"),
+    frequency: text("frequency").notNull(), // "08:00, 20:00" or "as required"
+    prn: boolean("prn").notNull().default(false),
+    prnInstructions: text("prn_instructions"),
+    prescribedBy: text("prescribed_by"),
+    reason: text("reason"),
+    controlledDrug: boolean("controlled_drug").notNull().default(false),
+    homely: boolean("homely").notNull().default(false), // over-the-counter under homely remedies policy
+    startOn: timestamp("start_on", { mode: "date" }).notNull(),
+    endOn: timestamp("end_on", { mode: "date" }),
+    stockCount: integer("stock_count"),
+    consentRecordedOn: timestamp("consent_recorded_on", { mode: "date" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("medications_child_idx").on(t.childId)],
+);
+
+export const marOutcomeEnum = pgEnum("mar_outcome", ["given", "refused", "missed", "not_required", "error", "destroyed"]);
+
+export const marEntries = pgTable(
+  "mar_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    medicationId: uuid("medication_id").notNull().references(() => medications.id),
+    administeredAt: timestamp("administered_at", { withTimezone: true }).notNull(),
+    outcome: marOutcomeEnum("outcome").notNull(),
+    doseGiven: text("dose_given"),
+    administeredBy: uuid("administered_by").notNull().references(() => users.id),
+    witnessedBy: uuid("witnessed_by").references(() => users.id),
+    stockAfter: integer("stock_after"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("mar_medication_idx").on(t.medicationId, t.administeredAt), index("mar_child_idx").on(t.childId, t.administeredAt)],
+);
+
+// ---- Checks, fire, maintenance ----
+
+export const checkTypes = pgTable(
+  "check_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    name: text("name").notNull(),
+    frequencyDays: integer("frequency_days").notNull(),
+    regulation: text("regulation"),
+    guidance: text("guidance"),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("check_types_home_idx").on(t.homeId)],
+);
+
+export const checkResults = pgTable(
+  "check_results",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    checkTypeId: uuid("check_type_id").notNull().references(() => checkTypes.id),
+    checkedOn: timestamp("checked_on", { mode: "date" }).notNull(),
+    passed: boolean("passed").notNull(),
+    findings: text("findings"),
+    actionTaken: text("action_taken"),
+    checkedBy: uuid("checked_by").notNull().references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("check_results_type_idx").on(t.checkTypeId, t.checkedOn)],
+);
+
+export const maintenanceItems = pgTable(
+  "maintenance_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    reportedOn: timestamp("reported_on", { mode: "date" }).notNull(),
+    reportedBy: uuid("reported_by").references(() => users.id),
+    location: text("location"),
+    description: text("description").notNull(),
+    priority: text("priority").notNull().default("routine"), // urgent | routine
+    safetyRisk: boolean("safety_risk").notNull().default(false),
+    status: text("status").notNull().default("open"), // open | in_progress | done
+    resolvedOn: timestamp("resolved_on", { mode: "date" }),
+    resolution: text("resolution"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("maintenance_home_idx").on(t.homeId, t.status)],
+);
+
+// ---- Money (Reg 47; Sch 3 para 7; Sch 4 para 7) ----
+
+export const moneyLedger = pgTable(
+  "money_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    /** Null = home petty cash; set = that child's money */
+    childId: uuid("child_id").references(() => children.id),
+    entryOn: timestamp("entry_on", { mode: "date" }).notNull(),
+    description: text("description").notNull(),
+    /** Pence. Positive = in, negative = out. */
+    amountPence: integer("amount_pence").notNull(),
+    receiptHeld: boolean("receipt_held").notNull().default(false),
+    recordedBy: uuid("recorded_by").notNull().references(() => users.id),
+    witnessedBy: uuid("witnessed_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("money_home_child_idx").on(t.homeId, t.childId, t.entryOn)],
+);
+
+// ---- Statement of Purpose, Children's Guide, policies (Reg 16, Reg 34) ----
+
+export const homeDocumentKindEnum = pgEnum("home_document_kind", ["statement_of_purpose", "childrens_guide", "policy", "risk_assessment_home", "other"]);
+
+export const homeDocuments = pgTable(
+  "home_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    kind: homeDocumentKindEnum("kind").notNull(),
+    title: text("title").notNull(),
+    version: text("version").notNull(),
+    effectiveFrom: timestamp("effective_from", { mode: "date" }).notNull(),
+    reviewDueOn: timestamp("review_due_on", { mode: "date" }),
+    summaryOfChanges: text("summary_of_changes"),
+    /** Reg 16(3)/Reg 49: Ofsted notified of a revised SoP */
+    ofstedNotifiedOn: timestamp("ofsted_notified_on", { mode: "date" }),
+    fileName: text("file_name"),
+    mimeType: text("mime_type"),
+    sizeBytes: integer("size_bytes"),
+    content: customBytea("content"),
+    supersedesId: uuid("supersedes_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("home_documents_home_kind_idx").on(t.homeId, t.kind)],
+);
+
+export type StaffRecord = typeof staffRecords.$inferSelect;
+export type Supervision = typeof supervisions.$inferSelect;
+export type TrainingRecord = typeof trainingRecords.$inferSelect;
+export type Medication = typeof medications.$inferSelect;
+export type MarEntry = typeof marEntries.$inferSelect;
+export type CheckType = typeof checkTypes.$inferSelect;
+export type CheckResult = typeof checkResults.$inferSelect;
+export type MaintenanceItem = typeof maintenanceItems.$inferSelect;
+export type MoneyEntry = typeof moneyLedger.$inferSelect;
+export type HomeDocument = typeof homeDocuments.$inferSelect;
