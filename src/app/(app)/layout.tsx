@@ -6,6 +6,7 @@ import { ROLE_LABELS } from "@/lib/rbac";
 const NAV = [
   { href: "/", label: "Overview" },
   { href: "/homes", label: "Homes" },
+  { href: "/children", label: "Children" },
   { href: "/staff", label: "Staff & access" },
   { href: "/audit", label: "Audit log" },
 ];
@@ -25,10 +26,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <div className="text-right leading-tight">
+            <Link href="/account" className="text-right leading-tight hover:underline">
               <div className="font-medium">{user.fullName}</div>
               <div className="text-xs text-muted">{user.role ? ROLE_LABELS[user.role] : "No active role"}</div>
-            </div>
+            </Link>
             <form action={logout}>
               <button className="btn-ghost" type="submit">Sign out</button>
             </form>

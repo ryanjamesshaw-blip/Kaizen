@@ -20,6 +20,13 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { customType } from "drizzle-orm/pg-core";
+
+const customBytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -204,3 +211,289 @@ export const auditEvents = pgTable(
 export type Role = (typeof roleEnum.enumValues)[number];
 export type AuditAction = (typeof auditActionEnum.enumValues)[number];
 export type RecordStatus = (typeof recordStatusEnum.enumValues)[number];
+
+// ===========================================================================
+// Slice 2 — Child record (Reg 36, Schedule 3), placements (Regs 17/18/41),
+// risk assessments (Reg 12), chronology, documents (Sch 3 paras 17–20).
+// Every table here carries organisationId + homeId (hard rule #2).
+// ===========================================================================
+
+export const sexEnum = pgEnum("sex", ["female", "male", "other", "not_recorded"]);
+
+export const legalStatusEnum = pgEnum("legal_status", [
+  "s20", // Children Act 1989 s.20 accommodated
+  "s31", // Full care order
+  "s38", // Interim care order
+  "s25", // Secure accommodation order
+  "remand", // Remand to LA accommodation
+  "placed_for_adoption",
+  "other",
+  "not_recorded",
+]);
+
+export const riskLevelEnum = pgEnum("risk_level", ["low", "medium", "high", "very_high"]);
+
+export const riskTypeEnum = pgEnum("risk_type", [
+  "general",
+  "missing",
+  "self_harm",
+  "online",
+  "exploitation",
+  "substance",
+  "behaviour",
+  "health",
+  "activity",
+  "other",
+]);
+
+export const chronologyCategoryEnum = pgEnum("chronology_category", [
+  "placement",
+  "education",
+  "health",
+  "contact",
+  "incident",
+  "missing",
+  "safeguarding",
+  "achievement",
+  "review",
+  "other",
+]);
+
+export const documentTypeEnum = pgEnum("document_type", [
+  "care_plan", // Sch 3 para 19
+  "pathway_plan",
+  "placement_plan",
+  "pep", // personal education plan
+  "ehcp",
+  "health_assessment",
+  "school_report", // Sch 3 para 18
+  "review_record", // Sch 3 para 20
+  "court_order",
+  "consent",
+  "photo",
+  "other",
+]);
+
+/** A person connected to the child: parent, carer, social worker, IRO, GP… */
+export type ContactPerson = {
+  role: string; // e.g. "Mother", "Social worker", "IRO", "GP", "Dentist", "School contact"
+  name: string;
+  organisation?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  religion?: string; // Sch 3 para 10 for parents/guardians
+  notes?: string;
+  parentalResponsibility?: boolean;
+};
+
+export const children = pgTable(
+  "children",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    /** Current home. Updated on transfer; history lives in placements. */
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+
+    // Sch 3 paras 1–4
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    preferredName: text("preferred_name"),
+    dateOfBirth: timestamp("date_of_birth", { mode: "date" }).notNull(),
+    sex: sexEnum("sex").notNull().default("not_recorded"),
+    religion: text("religion"),
+    ethnicity: text("ethnicity"),
+    culturalBackground: text("cultural_background"),
+    firstLanguage: text("first_language"),
+    nhsNumber: text("nhs_number"),
+    uniquePupilNumber: text("unique_pupil_number"),
+
+    // Sch 3 para 5
+    addressBeforeAdmission: text("address_before_admission"),
+
+    // Sch 3 para 8
+    legalStatus: legalStatusEnum("legal_status").notNull().default("not_recorded"),
+    legalStatusDetail: text("legal_status_detail"),
+    placingAuthority: text("placing_authority"),
+    placingAuthorityRef: text("placing_authority_ref"),
+
+    // Sch 3 paras 9–13: people
+    contacts: jsonb("contacts").$type<ContactPerson[]>().notNull().default([]),
+
+    // Sch 3 para 12–13: education / employment
+    educationProvider: text("education_provider"),
+    educationProviderContact: text("education_provider_contact"),
+    yearGroup: text("year_group"),
+    employer: text("employer"),
+
+    // Sch 3 para 16
+    contactArrangements: text("contact_arrangements"),
+    contactRestrictions: text("contact_restrictions"),
+
+    // Sch 3 paras 21–26: health
+    gpDetails: text("gp_details"),
+    dentistDetails: text("dentist_details"),
+    opticianDetails: text("optician_details"),
+    healthConditions: text("health_conditions"),
+    allergies: text("allergies"),
+    immunisations: text("immunisations"),
+    dietaryNeeds: text("dietary_needs"),
+    disabilitiesAndNeeds: text("disabilities_and_needs"),
+
+    // Housekeeping
+    keyWorkerUserId: uuid("key_worker_user_id").references(() => users.id),
+    notes: text("notes"),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: uuid("updated_by").references(() => users.id),
+  },
+  (t) => [index("children_home_idx").on(t.homeId), index("children_org_idx").on(t.organisationId)],
+);
+
+export const placements = pgTable(
+  "placements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    admittedOn: timestamp("admitted_on", { mode: "date" }).notNull(),
+    plannedEndOn: timestamp("planned_end_on", { mode: "date" }),
+    emergency: boolean("emergency").notNull().default(false),
+    reasonForPlacement: text("reason_for_placement"),
+    /** Sch 3 para 6 — where the child went on leaving */
+    dischargedOn: timestamp("discharged_on", { mode: "date" }),
+    dischargeDestination: text("discharge_destination"),
+    dischargeDestinationType: text("discharge_destination_type"),
+    dischargeReason: text("discharge_reason"),
+    /** Reg 41 notification tracking (slice 4 wires the rule) */
+    admissionNotifiedAt: timestamp("admission_notified_at", { withTimezone: true }),
+    dischargeNotifiedAt: timestamp("discharge_notified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: uuid("updated_by").references(() => users.id),
+  },
+  (t) => [index("placements_child_idx").on(t.childId), index("placements_home_idx").on(t.homeId)],
+);
+
+/**
+ * Versioned, lifecycle-governed records share these columns.
+ *  status: draft → submitted → reviewed → locked
+ *  version / supersedesId / amendmentReason: an amendment of a locked record
+ *  is a NEW row (version+1) pointing at the original; the original is never
+ *  mutated (hard rule #3).
+ */
+const lifecycleColumns = {
+  status: recordStatusEnum("status").notNull().default("draft"),
+  version: integer("version").notNull().default(1),
+  amendmentReason: text("amendment_reason"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  submittedBy: uuid("submitted_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  lockedAt: timestamp("locked_at", { withTimezone: true }),
+  lockedBy: uuid("locked_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: uuid("updated_by").references(() => users.id),
+};
+
+/** Reg 17/18 placement plan — versioned. */
+export const placementPlans = pgTable(
+  "placement_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    placementId: uuid("placement_id").references(() => placements.id),
+    supersedesId: uuid("supersedes_id"),
+    // Reg 17(1) / Sch 1 headings
+    needsAndObjectives: text("needs_and_objectives"),
+    healthArrangements: text("health_arrangements"),
+    educationArrangements: text("education_arrangements"),
+    contactArrangements: text("contact_arrangements"),
+    behaviourSupport: text("behaviour_support"),
+    independenceSkills: text("independence_skills"),
+    culturalReligiousNeeds: text("cultural_religious_needs"),
+    childsViews: text("childs_views"),
+    reviewDueOn: timestamp("review_due_on", { mode: "date" }),
+    ...lifecycleColumns,
+  },
+  (t) => [index("placement_plans_child_idx").on(t.childId)],
+);
+
+export const riskAssessments = pgTable(
+  "risk_assessments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    supersedesId: uuid("supersedes_id"),
+    type: riskTypeEnum("type").notNull().default("general"),
+    title: text("title").notNull(),
+    description: text("description"),
+    triggers: text("triggers"),
+    controls: text("controls"),
+    level: riskLevelEnum("level").notNull().default("medium"),
+    childsViews: text("childs_views"),
+    reviewDueOn: timestamp("review_due_on", { mode: "date" }).notNull(),
+    ...lifecycleColumns,
+  },
+  (t) => [index("risk_child_idx").on(t.childId), index("risk_review_idx").on(t.reviewDueOn)],
+);
+
+export const chronologyEntries = pgTable(
+  "chronology_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    occurredOn: timestamp("occurred_on", { mode: "date" }).notNull(),
+    category: chronologyCategoryEnum("category").notNull().default("other"),
+    summary: text("summary").notNull(),
+    detail: text("detail"),
+    significant: boolean("significant").notNull().default(false),
+    /** Set when generated by the system from another record (e.g. placement). */
+    sourceType: text("source_type"),
+    sourceId: text("source_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("chronology_child_idx").on(t.childId, t.occurredOn)],
+);
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").references(() => children.id),
+    type: documentTypeEnum("type").notNull().default("other"),
+    title: text("title").notNull(),
+    fileName: text("file_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    /** Stored in-database for now; moves to object storage when hosting is decided. */
+    content: customBytea("content").notNull(),
+    documentDate: timestamp("document_date", { mode: "date" }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("documents_child_idx").on(t.childId)],
+);
+
+export type Child = typeof children.$inferSelect;
+export type Placement = typeof placements.$inferSelect;
+export type PlacementPlan = typeof placementPlans.$inferSelect;
+export type RiskAssessment = typeof riskAssessments.$inferSelect;
+export type ChronologyEntry = typeof chronologyEntries.$inferSelect;
+export type Document = typeof documents.$inferSelect;

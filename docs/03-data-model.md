@@ -13,15 +13,15 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **sessions** — hashed token, IP, user agent, expiry, revocation
 - **audit_events** — append-only, hash-chained (see architecture)
 
-## Child (Schedule 3) — slice 2
+## Child (Schedule 3) — slice 2 (live)
 
-- **child** — identifiers, name, DOB, sex, ethnicity, religion, language, legal status, placing authority, social worker, IRO, parents/carers and contact arrangements, GP, dentist, optician, school/education provider, health conditions, allergies, consent flags, photo
-- **placement** — child × home, admission date, planned end, reason, placing authority ref, emergency flag, discharge date and destination
-- **placement_plan** — versioned; needs, objectives, arrangements for education/health/contact/independence
+- **children** — Schedule 3 fields as columns; `contacts` jsonb array of people (role, name, organisation, phone, email, address, religion, parental responsibility); `homeId` is the current home; `archivedAt` set on discharge
+- **placements** — child × home, admission date, planned end, reason, emergency flag, discharge date / destination / type / reason, Reg 41 notification stamps
+- **placement_plans** — Reg 17 headings; lifecycle columns (status, version, supersedesId, amendmentReason, submitted/reviewed/locked by+at)
 - **care_plan_document** — uploaded LA care plan, pathway plan, EHCP, PEP, health assessment, with dates
-- **risk_assessment** — type (individual, missing, self-harm, online, activity), level, controls, review date, next review, versions
-- **chronology** — significant events, auto-fed from incidents and placements plus manual entries
-- **document** — any file, typed, with retention category
+- **risk_assessments** — type, title, description, triggers, controls, level, child's views, reviewDueOn; same lifecycle columns
+- **chronology_entries** — occurredOn, category, summary, detail, significant, sourceType/sourceId when system-generated (admission and discharge are)
+- **documents** — typed, title, file metadata, bytes in `content` (bytea, ≤10 MB) until object storage is chosen
 
 ## Daily recording — slice 3
 

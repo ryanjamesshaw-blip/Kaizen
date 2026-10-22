@@ -3,7 +3,11 @@ import { requireUser } from "@/lib/auth/guard";
 import { getVisibleHome, listStaff } from "@/lib/homes/queries";
 import { audit } from "@/lib/audit";
 import { requestMeta } from "@/lib/auth/session";
-import { ROLE_LABELS } from "@/lib/rbac";
+import { ROLE_LABELS, can } from "@/lib/rbac";
+import Link from "next/link";
+import { listVisibleChildren, riskOverviewForHome, ageOn, fullName } from "@/lib/children/queries";
+import { isOverdue } from "@/lib/records/lifecycle";
+import { LevelPill, StatusPill, fmtDate } from "@/components/record-status";
 
 export default async function HomePage({ params }: { params: Promise<{ homeId: string }> }) {
   const { homeId } = await params;
@@ -23,7 +27,14 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
     ...(await requestMeta()),
   });
 
-  const staff = (await listStaff(user, home.organisationId)).filter((s) => s.homeId === home.id);
+  const [staffAll, kids, risks] = await Promise.all([
+    listStaff(user, home.organisationId),
+    listVisibleChildren(user, home.organisationId, home.id),
+    riskOverviewForHome(user, home.organisationId, home.id),
+  ]);
+  const staff = staffAll.filter((s) => s.homeId === home.id);
+  const overdue = risks.filter((r) => isOverdue(r.reviewDueOn) && r.status !== "locked");
+  const canAdmit = can(user.grants, "child:write", { organisationId: home.organisationId, homeId: home.id });
 
   return (
     <div className="space-y-6">
@@ -40,8 +51,54 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="card"><div className="text-xs uppercase text-muted">Capacity</div><div className="text-xl font-semibold">{home.capacity ?? "—"}</div></div>
         <div className="card"><div className="text-xs uppercase text-muted">Age range</div><div className="text-xl font-semibold">{home.ageRangeMin ?? "—"}–{home.ageRangeMax ?? "—"}</div></div>
-        <div className="card"><div className="text-xs uppercase text-muted">Children placed</div><div className="text-xl font-semibold text-muted">Slice 2</div></div>
+        <div className="card"><div className="text-xs uppercase text-muted">Children placed</div><div className="text-xl font-semibold">{kids.length}{home.capacity ? <span className="text-base font-normal text-muted"> / {home.capacity}</span> : null}</div></div>
       </div>
+
+      <section className="card">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold">Children</h2>
+          {canAdmit && <Link href={`/children/new?home=${home.id}`} className="btn-ghost">Admit a child</Link>}
+        </div>
+        {kids.length === 0 ? <p className="text-sm text-muted">No children currently placed.</p> : (
+          <table className="table">
+            <thead><tr><th>Name</th><th>Age</th><th>Key worker</th><th>Risk reviews</th></tr></thead>
+            <tbody>
+              {kids.map((c) => {
+                const mine = risks.filter((r) => r.childId === c.id);
+                const od = mine.filter((r) => isOverdue(r.reviewDueOn) && r.status !== "locked").length;
+                return (
+                  <tr key={c.id}>
+                    <td><Link href={`/children/${c.id}`} className="font-medium text-brand hover:underline">{fullName(c)}</Link></td>
+                    <td>{ageOn(c.dateOfBirth)}</td>
+                    <td>{c.keyWorkerName ?? <span className="text-muted">Not assigned</span>}</td>
+                    <td>{mine.length === 0 ? <span className="text-muted">None</span> : od > 0 ? <span className="text-danger">{od} overdue</span> : <span className="text-ok">Up to date</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      {overdue.length > 0 && (
+        <section className="card border-red-200">
+          <h2 className="mb-3 text-base font-semibold text-danger">Overdue risk reviews</h2>
+          <table className="table">
+            <thead><tr><th>Child</th><th>Assessment</th><th>Level</th><th>Status</th><th>Was due</th></tr></thead>
+            <tbody>
+              {overdue.map((r) => (
+                <tr key={r.id}>
+                  <td><Link href={`/children/${r.childId}`} className="text-brand hover:underline">{r.childFirst} {r.childLast}</Link></td>
+                  <td><Link href={`/children/${r.childId}/risk/${r.id}`} className="hover:underline">{r.title}</Link></td>
+                  <td><LevelPill level={r.level} /></td>
+                  <td><StatusPill status={r.status} /></td>
+                  <td className="text-danger">{fmtDate(r.reviewDueOn)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       <section className="card">
         <h2 className="mb-3 text-base font-semibold">Team and access</h2>

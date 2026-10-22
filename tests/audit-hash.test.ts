@@ -18,6 +18,12 @@ const base = (over: Partial<AuditContent> = {}): AuditContent => ({
 });
 
 describe("canonicalJson", () => {
+  it("hashes a Date the same as the ISO string Postgres will return", () => {
+    expect(canonicalJson({ at: new Date("2026-10-22T00:00:00.000Z") })).toBe(canonicalJson({ at: "2026-10-22T00:00:00.000Z" }));
+  });
+  it("drops undefined and keeps null", () => {
+    expect(canonicalJson({ a: undefined, b: null })).toBe('{"b":null}');
+  });
   it("is independent of key order", () => {
     expect(canonicalJson({ b: 1, a: { d: 2, c: 3 } })).toBe(canonicalJson({ a: { c: 3, d: 2 }, b: 1 }));
   });

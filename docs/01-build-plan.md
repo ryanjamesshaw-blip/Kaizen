@@ -15,8 +15,8 @@
 | # | Slice | Delivers | Status |
 |---|-------|----------|--------|
 | 1 | Foundation | Repo, Next.js/TypeScript, Postgres, auth, organisation → home → staff, roles, append-only audit log | **Done** (22 Oct 2026) |
-| 2 | Child record | Schedule 3 fields, placement plan, risk assessments with review cycles, chronology, documents | Next |
-| 3 | Daily recording | Daily logs, handovers, key-work sessions, child's voice, offline-tolerant mobile UI | |
+| 2 | Child record | Schedule 3 fields, placement plan, risk assessments with review cycles, chronology, documents | **Done** (22 Oct 2026) |
+| 3 | Daily recording | Daily logs, handovers, key-work sessions, child's voice, offline-tolerant mobile UI | Next |
 | 4 | Incidents | Incident / missing / physical intervention / complaint / safeguarding, with auto-created follow-ups (debrief, child's view, Reg 40 notification, manager review) | |
 | 5 | Home operations | Supervision, appraisal, training matrix, medication (MAR), H&S and fire checks, maintenance, petty cash, Statement of Purpose & Children's Guide versioning | |
 | 6 | Governance | Reg 44 independent visitor workflow, Reg 45 quality review, director/RI cross-home dashboard, action tracker | |
@@ -24,7 +24,7 @@
 | 8 | Audit engine | Continuous rules producing actions with owner + deadline; compliance score per home | |
 | 9 | AI layer | Claude: Reg 45 draft, chronology summary, log-quality feedback, mock SCCIF inspection with action plan | |
 
-Slice 1 leftovers carried into slice 2: granting/revoking access from the UI, MFA (TOTP) for deputy and above, password change.
+Done in slice 2 from the slice 1 leftovers: grant/revoke access from the UI, password change. Still carried: TOTP MFA for deputy and above; documents to move from Postgres to object storage once hosting is chosen.
 
 ## Done criteria for every slice
 

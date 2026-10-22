@@ -22,9 +22,15 @@ export type AuditContent = {
   userAgent: string | null;
 };
 
-/** Deterministic JSON: keys sorted recursively, no whitespace. */
+/**
+ * Deterministic JSON: keys sorted recursively, no whitespace.
+ * The value is first normalised through JSON itself so Dates become ISO
+ * strings, undefined keys drop, and the result matches exactly what
+ * Postgres will hand back from a jsonb column.
+ */
 export function canonicalJson(value: unknown): string {
-  return JSON.stringify(sortKeys(value));
+  const normalised = value === undefined ? null : JSON.parse(JSON.stringify(value));
+  return JSON.stringify(sortKeys(normalised));
 }
 
 function sortKeys(value: unknown): unknown {
