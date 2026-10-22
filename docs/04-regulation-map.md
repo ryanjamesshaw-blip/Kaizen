@@ -12,8 +12,8 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 | 9 | Enjoyment and achievement | Activities in daily logs, achievements in chronology. **Slice 3:** activities and positives prompts |
 | 10 | Health and well-being | Health section (Sch 3 paras 21–26), MAR, health appointments, risk assessments |
 | 11 | Positive relationships | Key-work, contact records (Sch 3 para 16), behaviour support plans. **Slice 3:** key-work sessions with actions agreed and next date |
-| 12 | Protection of children | Risk assessments, safeguarding incidents, missing episodes, Reg 40 notifications, policies (Reg 34). **Slice 2:** versioned risk assessments with review dates; overdue reviews surfaced on the home page |
-| 13 | Leadership and management | Supervision, training matrix, Reg 44/45, action tracker, audit engine dashboard. **Slice 1:** organisation → home → staff structure, scoped roles, audit log |
+| 12 | Protection of children | Risk assessments, safeguarding incidents, missing episodes, Reg 40 notifications, policies (Reg 34). **Slice 2:** versioned risk assessments with review dates; overdue reviews surfaced on the home page. **Slice 4:** incidents, safeguarding concerns, missing episodes; rules create referral/review tasks |
+| 13 | Leadership and management | Supervision, training matrix, Reg 44/45, action tracker, audit engine dashboard. **Slice 1:** organisation → home → staff structure, scoped roles, audit log. **Slice 4:** manager review of every incident; follow-up tasks with owners, deadlines and regulation; RI informed on critical events |
 | 14 | Care planning | Placement plan (Regs 17/18), LA care plan copies (Sch 3 para 19), review outcomes (Sch 3 para 20). **Slice 2:** placement plan with lifecycle; documents of type care plan / review record |
 
 ## Conduct of the home (Regs 16–25)
@@ -23,10 +23,10 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 | 16 | Statement of purpose (Schedule 1) | Versioned SoP with Schedule 1 section template; change triggers Reg 49 notice task |
 | 17 / 18 | Placement plans | **Slice 2:** placement plan entity, versioned, draft → submitted → reviewed → locked → amend; child page warns when none exists. Rule for RM action: slice 8 |
 | 19 | Behaviour management and discipline | Behaviour support plan per child; measures of control recorded (Sch 3 para 15) |
-| 20 | Restraint and deprivation of liberty | Physical intervention record with Reg 35(3) fields; auto follow-ups |
+| 20 | Restraint and deprivation of liberty | **Slice 4:** physical intervention record with Reg 35(3) fields; rules create child's view (24h), staff debrief (24h), manager sign-off (48h), risk review (5d), medical check if injured |
 | 21 | Privacy and access | Record of searches / room checks; child access to own record |
 | 22 | Contact and communications | Contact arrangements and restrictions per child |
-| 23 | Medicines | Medication register and MAR; stock reconciliation; error reporting |
+| 23 | Medicines | Medication register and MAR; stock reconciliation (slice 5). **Slice 4:** medication error incident type with pharmacist-advice and MAR-review tasks |
 | 24 | Monitoring and surveillance | Register of surveillance measures and consents |
 | 25 | Fire precautions | Fire checks and drills (Sch 4 para 6) |
 
@@ -44,13 +44,13 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 
 | Reg | Subject | Feature |
 |-----|---------|---------|
-| 34 | Child protection, bullying, missing policies | Policy library with version and review date |
-| 35 | Behaviour management policies and records | Measures of control / restraint register, reviewed and signed by RM |
+| 34 | Child protection, bullying, missing policies | Policy library (slice 5). **Slice 4:** missing episode record — police informed, return, welcome-back conversation, independent return interview within 72h; LADO referral task for allegations |
+| 35 | Behaviour management policies and records | **Slice 4:** `physical_interventions` table holds every Reg 35(3) field; manager cannot sign until the child's view is recorded; register = incidents filtered by type |
 | 36 | Children's case records (Schedule 3) | **Slice 2:** child record with Schedule 3 field groups (paras 1–6, 8–13, 16–26); contacts as structured people; chronology; documents (paras 17–20). Para 7 (money) slice 5; para 15 (measures of control) slice 4. Completeness score: slice 8 |
 | 37 | Other records (Schedule 4) | Register of children, staff register, rota, residents/workers, visitors book, fire drills, accounts |
 | 38 | Storage of records | Encryption, retention (child records to 75th birthday), access control, backup. **Slice 1:** append-only hash-chained `audit_events`, DB-backed sessions, scoped access |
-| 39 | Complaints and representations | Complaint workflow with stages and timescales |
-| 40 | Notification of a serious event | Notification entity; rule from incident type → notify Ofsted / LA / police; tracked to acknowledgement |
+| 39 | Complaints and representations | **Slice 4:** complaint incident type with acknowledge (3d) and respond (28d) tasks. Full stages: slice 6 |
+| 40 | Notification of a serious event | **Slice 4:** notification flags pre-set by type/severity, manager confirms; `notifications` table records what was sent, when, by whom, reference; required-but-missing shown in red; rules create Ofsted tasks for missing, safeguarding, allegations, police involvement, serious accidents |
 | 41 | Admissions and discharges | **Slice 2:** placement opened at admission and closed at discharge with destination (Sch 3 para 6); `admissionNotifiedAt` / `dischargeNotifiedAt` columns ready for the slice 8 rule |
 | 42 | Notification of offences | Staff record flag → notification task |
 

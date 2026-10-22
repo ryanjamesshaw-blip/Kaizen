@@ -8,6 +8,8 @@ import { isOverdue, daysUntil } from "@/lib/records/lifecycle";
 import { ActionForm, Area, DateInput, Select, Text } from "@/components/form";
 import { StatusPill, LevelPill, fmtDate, fmtDateTime } from "@/components/record-status";
 import { LEGAL_LABEL } from "@/components/child-form";
+import { listIncidents } from "@/lib/incidents/queries";
+import { INCIDENT_TYPE_LABEL } from "@/lib/rules/incidents";
 
 const CHRONO: Array<[string, string]> = [["other", "Other"], ["placement", "Placement"], ["education", "Education"], ["health", "Health"], ["contact", "Contact"], ["incident", "Incident"], ["missing", "Missing"], ["safeguarding", "Safeguarding"], ["achievement", "Achievement"], ["review", "Review / meeting"]];
 const DOC: Array<[string, string]> = [["care_plan", "Care plan (LA)"], ["placement_plan", "Placement plan"], ["pathway_plan", "Pathway plan"], ["pep", "Personal education plan"], ["ehcp", "EHC plan"], ["health_assessment", "Health assessment"], ["school_report", "School report"], ["review_record", "Review record"], ["court_order", "Court order"], ["consent", "Consent form"], ["photo", "Photo"], ["other", "Other"]];
@@ -25,6 +27,7 @@ export default async function ChildPage({ params }: { params: Promise<{ childId:
   const currentRisks = b.risks.filter(({ r }) => !b.risks.some((o) => o.r.supersedesId === r.id));
   const currentPlan = b.plans.find((p) => !b.plans.some((o) => o.supersedesId === p.id)) ?? null;
   const overdue = currentRisks.filter(({ r }) => isOverdue(r.reviewDueOn));
+  const recentIncidents = await listIncidents(user, child.organisationId, { childId: child.id, limit: 8 });
 
   return (
     <div className="space-y-6">
@@ -39,6 +42,7 @@ export default async function ChildPage({ params }: { params: Promise<{ childId:
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/children/${child.id}/daily`} className="btn">Daily records</Link>
+          {canWrite && <Link href={`/incidents/new?child=${child.id}`} className="btn-ghost">Record incident</Link>}
           {canWrite && <Link href={`/children/${child.id}/edit`} className="btn-ghost">Edit record</Link>}
           {canDischarge && <Link href={`/children/${child.id}/discharge`} className="btn-ghost">End placement</Link>}
         </div>
@@ -109,6 +113,21 @@ export default async function ChildPage({ params }: { params: Promise<{ childId:
                   })}
                 </tbody>
               </table>
+            )}
+          </section>
+
+          <section className="card">
+            <h2 className="mb-3 text-base font-semibold">Incidents</h2>
+            {recentIncidents.length === 0 ? <p className="text-sm text-muted">None recorded.</p> : (
+              <ul className="space-y-1 text-sm">
+                {recentIncidents.map((i) => (
+                  <li key={i.id} className="flex flex-wrap items-center gap-2">
+                    <Link href={`/incidents/${i.id}`} className="font-medium text-brand hover:underline">{fmtDateTime(i.occurredAt)}</Link>
+                    <span>{INCIDENT_TYPE_LABEL[i.type]}</span><span className="pill">{i.severity}</span>
+                    {i.openTasks > 0 && <span className={`text-xs ${i.overdueTasks ? "text-danger" : "text-muted"}`}>{i.overdueTasks ? `${i.overdueTasks} overdue` : `${i.openTasks} open`}</span>}
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
 

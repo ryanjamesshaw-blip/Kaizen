@@ -17,8 +17,8 @@
 | 1 | Foundation | Repo, Next.js/TypeScript, Postgres, auth, organisation → home → staff, roles, append-only audit log | **Done** (22 Oct 2026) |
 | 2 | Child record | Schedule 3 fields, placement plan, risk assessments with review cycles, chronology, documents | **Done** (22 Oct 2026) |
 | 3 | Daily recording | Daily logs, handovers, key-work sessions, child's voice, offline-tolerant mobile UI | **Done** (22 Oct 2026) |
-| 4 | Incidents | Incident / missing / physical intervention / complaint / safeguarding, with auto-created follow-ups (debrief, child's view, Reg 40 notification, manager review) | Next |
-| 5 | Home operations | Supervision, appraisal, training matrix, medication (MAR), H&S and fire checks, maintenance, petty cash, Statement of Purpose & Children's Guide versioning | |
+| 4 | Incidents | Incident / missing / physical intervention / complaint / safeguarding, with auto-created follow-ups (debrief, child's view, Reg 40 notification, manager review) | **Done** (22 Oct 2026) |
+| 5 | Home operations | Supervision, appraisal, training matrix, medication (MAR), H&S and fire checks, maintenance, petty cash, Statement of Purpose & Children's Guide versioning | Next |
 | 6 | Governance | Reg 44 independent visitor workflow, Reg 45 quality review, director/RI cross-home dashboard, action tracker | |
 | 7 | Inspection window | Time-boxed read-only inspector role, scoped per home, every access logged, SCCIF-ordered export pack | |
 | 8 | Audit engine | Continuous rules producing actions with owner + deadline; compliance score per home | |

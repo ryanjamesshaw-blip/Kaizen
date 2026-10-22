@@ -79,7 +79,7 @@ export default async function ShiftPage({ searchParams }: { searchParams: Promis
               <div key={k.id} className="card">
                 <div className="flex items-start justify-between gap-2">
                   <Link href={`/children/${k.id}/daily`} className="font-medium text-brand hover:underline">{fullName(k)}</Link>
-                  {canWrite && <Link href={`/children/${k.id}/log/new?date=${ymd}&shift=${currentShift()}`} className="btn">Log shift</Link>}
+                  {canWrite && <div className="flex gap-1"><Link href={`/incidents/new?child=${k.id}`} className="btn-ghost">Incident</Link><Link href={`/children/${k.id}/log/new?date=${ymd}&shift=${currentShift()}`} className="btn">Log shift</Link></div>}
                 </div>
                 {mine.length === 0 ? <p className="mt-2 text-sm text-muted">No log for this date.</p> : (
                   <ul className="mt-2 space-y-1 text-sm">

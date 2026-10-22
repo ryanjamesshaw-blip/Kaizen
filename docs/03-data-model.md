@@ -30,14 +30,14 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **keywork_sessions** — child × date, duration, topics, discussion, child's words, actions agreed, next session; lifecycle columns
 - **child_voice** — child × date, method, what the child said, immediate response, outcome + respondedBy/At
 
-## Incidents — slice 4
+## Incidents — slice 4 (live)
 
-- **incident** — type (incident, missing, physical intervention, complaint, safeguarding concern, accident, medication error), child(ren), staff involved, date/time, narrative, immediate actions, injuries, witnesses
-- **physical_intervention** — hold type, duration, justification, de-escalation attempted, injuries, child's view, debrief, manager review (Reg 35 fields)
-- **missing_episode** — time left, time returned, police ref, return interview, risk triggers
-- **complaint** — complainant, stage, outcome, timescales
-- **notification** — Reg 40 to Ofsted/LA/police: type, sent at, by, method, reference, response
-- **follow_up_task** — auto-created from rules; owner, due, done, evidence link
+- **incidents** — type (10 types), severity, occurredAt, location, staff, witnesses, antecedent, narrative, immediate actions, injuries, notify* flags, manager review notes, lessons learned; lifecycle columns
+- **physical_interventions** — one per restraint incident; every Reg 35(3) field incl. child's view (+ recorded by/at), staff debrief, manager signature
+- **missing_episodes** — left at, classification, police informed/reference, returned at/how/condition, welcome-back conversation, independent return interview offered/held/by
+- **notifications** — recipient, sent at/by, method, reference, acknowledged
+- **follow_up_tasks** — ruleKey, title, detail, regulation, ownerRole/ownerUserId, dueAt, status (open/done/not_applicable), completion note
+- Complaint stages table: slice 6
 
 ## Home operations — slice 5
 

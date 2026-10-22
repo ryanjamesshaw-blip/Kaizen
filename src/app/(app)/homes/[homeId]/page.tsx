@@ -8,6 +8,7 @@ import Link from "next/link";
 import { listVisibleChildren, riskOverviewForHome, ageOn, fullName } from "@/lib/children/queries";
 import { isOverdue } from "@/lib/records/lifecycle";
 import { LevelPill, StatusPill, fmtDate } from "@/components/record-status";
+import { homeIncidentSummary } from "@/lib/incidents/queries";
 
 export default async function HomePage({ params }: { params: Promise<{ homeId: string }> }) {
   const { homeId } = await params;
@@ -27,10 +28,11 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
     ...(await requestMeta()),
   });
 
-  const [staffAll, kids, risks] = await Promise.all([
+  const [staffAll, kids, risks, inc] = await Promise.all([
     listStaff(user, home.organisationId),
     listVisibleChildren(user, home.organisationId, home.id),
     riskOverviewForHome(user, home.organisationId, home.id),
+    homeIncidentSummary(home.id),
   ]);
   const staff = staffAll.filter((s) => s.homeId === home.id);
   const overdue = risks.filter((r) => isOverdue(r.reviewDueOn) && r.status !== "locked");
@@ -49,6 +51,8 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
+        <Link href={`/incidents?home=${home.id}`} className="card hover:border-brand"><div className="text-xs uppercase text-muted">Incidents, last 30 days</div><div className="text-xl font-semibold">{inc.last30}<span className="text-base font-normal text-muted"> · {inc.pi30} restraint · {inc.missing30} missing</span></div></Link>
+        <Link href="/tasks" className="card hover:border-brand"><div className="text-xs uppercase text-muted">Open follow-ups</div><div className={`text-xl font-semibold ${inc.tasksOverdue ? "text-danger" : ""}`}>{inc.tasksOpen}{inc.tasksOverdue ? <span className="text-base font-normal"> · {inc.tasksOverdue} overdue</span> : null}</div></Link>
         <div className="card"><div className="text-xs uppercase text-muted">Capacity</div><div className="text-xl font-semibold">{home.capacity ?? "—"}</div></div>
         <div className="card"><div className="text-xs uppercase text-muted">Age range</div><div className="text-xl font-semibold">{home.ageRangeMin ?? "—"}–{home.ageRangeMax ?? "—"}</div></div>
         <div className="card"><div className="text-xs uppercase text-muted">Children placed</div><div className="text-xl font-semibold">{kids.length}{home.capacity ? <span className="text-base font-normal text-muted"> / {home.capacity}</span> : null}</div></div>

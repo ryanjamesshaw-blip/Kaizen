@@ -623,3 +623,191 @@ export type DailyLog = typeof dailyLogs.$inferSelect;
 export type Handover = typeof handovers.$inferSelect;
 export type KeyworkSession = typeof keyworkSessions.$inferSelect;
 export type ChildVoice = typeof childVoice.$inferSelect;
+
+// ===========================================================================
+// Slice 4 — Incidents (Reg 12 protection; Reg 20/35 restraint records;
+// Reg 34 missing policy; Reg 39 complaints; Reg 40 notifications) and the
+// follow-up tasks the rules engine creates from them.
+// ===========================================================================
+
+export const incidentTypeEnum = pgEnum("incident_type", [
+  "incident", // general behavioural / other
+  "missing",
+  "physical_intervention",
+  "safeguarding",
+  "complaint",
+  "accident",
+  "medication_error",
+  "property_damage",
+  "police_involvement",
+  "allegation_against_staff",
+]);
+
+export const severityEnum = pgEnum("severity", ["low", "medium", "high", "critical"]);
+
+export const taskStatusEnum = pgEnum("task_status", ["open", "done", "not_applicable"]);
+
+export const notificationRecipientEnum = pgEnum("notification_recipient", [
+  "ofsted",
+  "placing_authority",
+  "police",
+  "lado",
+  "iro",
+  "parents",
+  "ri",
+  "other",
+]);
+
+export const incidents = pgTable(
+  "incidents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    /** Primary child. Null for home-level events (e.g. property damage with no child). */
+    childId: uuid("child_id").references(() => children.id),
+    otherChildIds: jsonb("other_child_ids").$type<string[]>().notNull().default([]),
+    type: incidentTypeEnum("type").notNull(),
+    severity: severityEnum("severity").notNull().default("medium"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    location: text("location"),
+    staffInvolved: text("staff_involved"),
+    witnesses: text("witnesses"),
+    antecedent: text("antecedent"),
+    narrative: text("narrative").notNull(),
+    immediateActions: text("immediate_actions"),
+    injuries: text("injuries"),
+    /** Decided at creation from the rules; manager can override. */
+    notifyOfsted: boolean("notify_ofsted").notNull().default(false),
+    notifyPlacingAuthority: boolean("notify_placing_authority").notNull().default(false),
+    notifyPolice: boolean("notify_police").notNull().default(false),
+    notifyLado: boolean("notify_lado").notNull().default(false),
+    managerReviewNotes: text("manager_review_notes"),
+    lessonsLearned: text("lessons_learned"),
+    supersedesId: uuid("supersedes_id"),
+    ...lifecycleColumns,
+  },
+  (t) => [index("incidents_home_idx").on(t.homeId, t.occurredAt), index("incidents_child_idx").on(t.childId)],
+);
+
+/** Reg 35(3) record of a measure of control, discipline or restraint. */
+export const physicalInterventions = pgTable(
+  "physical_interventions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    incidentId: uuid("incident_id").notNull().references(() => incidents.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    holdType: text("hold_type").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    durationMinutes: integer("duration_minutes").notNull(),
+    staffApplying: text("staff_applying").notNull(),
+    deEscalationAttempted: text("de_escalation_attempted").notNull(),
+    justification: text("justification").notNull(),
+    injuriesChild: text("injuries_child"),
+    injuriesStaff: text("injuries_staff"),
+    medicalAttention: text("medical_attention"),
+    effectiveness: text("effectiveness"),
+    // Reg 35(3)(h)–(i): child's view and manager's record
+    childsView: text("childs_view"),
+    childsViewRecordedAt: timestamp("childs_view_recorded_at", { withTimezone: true }),
+    childsViewRecordedBy: uuid("childs_view_recorded_by").references(() => users.id),
+    staffDebriefNotes: text("staff_debrief_notes"),
+    staffDebriefAt: timestamp("staff_debrief_at", { withTimezone: true }),
+    managerSignedAt: timestamp("manager_signed_at", { withTimezone: true }),
+    managerSignedBy: uuid("manager_signed_by").references(() => users.id),
+    managerComments: text("manager_comments"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("pi_incident_idx").on(t.incidentId), index("pi_child_idx").on(t.childId)],
+);
+
+export const missingEpisodes = pgTable(
+  "missing_episodes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    incidentId: uuid("incident_id").notNull().references(() => incidents.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    leftAt: timestamp("left_at", { withTimezone: true }).notNull(),
+    circumstances: text("circumstances"),
+    /** "missing" (police) or "absent" (unauthorised absence, lower concern) */
+    classification: text("classification").notNull().default("missing"),
+    policeInformedAt: timestamp("police_informed_at", { withTimezone: true }),
+    policeReference: text("police_reference"),
+    returnedAt: timestamp("returned_at", { withTimezone: true }),
+    returnedHow: text("returned_how"),
+    conditionOnReturn: text("condition_on_return"),
+    /** Staff welcome-back conversation */
+    returnConversationAt: timestamp("return_conversation_at", { withTimezone: true }),
+    returnConversationNotes: text("return_conversation_notes"),
+    /** Independent return interview (statutory guidance: offered within 72h by the LA) */
+    independentInterviewOfferedAt: timestamp("independent_interview_offered_at", { withTimezone: true }),
+    independentInterviewAt: timestamp("independent_interview_at", { withTimezone: true }),
+    independentInterviewBy: text("independent_interview_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("missing_incident_idx").on(t.incidentId), index("missing_child_idx").on(t.childId)],
+);
+
+/** Reg 40 (and related) notifications actually sent, with their reference. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    incidentId: uuid("incident_id").references(() => incidents.id),
+    childId: uuid("child_id").references(() => children.id),
+    recipient: notificationRecipientEnum("recipient").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+    sentBy: uuid("sent_by").references(() => users.id),
+    method: text("method"), // online form, email, phone
+    reference: text("reference"),
+    notes: text("notes"),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("notifications_incident_idx").on(t.incidentId)],
+);
+
+/**
+ * Follow-up tasks. Created by rules (src/lib/rules) or by hand. The thing
+ * that turns "we should" into "who, by when".
+ */
+export const followUpTasks = pgTable(
+  "follow_up_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").references(() => children.id),
+    incidentId: uuid("incident_id").references(() => incidents.id),
+    /** Rule key, e.g. "pi.childs_view", or "manual" */
+    ruleKey: text("rule_key").notNull(),
+    title: text("title").notNull(),
+    detail: text("detail"),
+    regulation: text("regulation"),
+    ownerRole: roleEnum("owner_role"),
+    ownerUserId: uuid("owner_user_id").references(() => users.id),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    status: taskStatusEnum("status").notNull().default("open"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    completedBy: uuid("completed_by").references(() => users.id),
+    completionNote: text("completion_note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("tasks_home_status_idx").on(t.homeId, t.status, t.dueAt), index("tasks_incident_idx").on(t.incidentId)],
+);
+
+export type Incident = typeof incidents.$inferSelect;
+export type PhysicalIntervention = typeof physicalInterventions.$inferSelect;
+export type MissingEpisode = typeof missingEpisodes.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type FollowUpTask = typeof followUpTasks.$inferSelect;
+export type IncidentType = (typeof incidentTypeEnum.enumValues)[number];

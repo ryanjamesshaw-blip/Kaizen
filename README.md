@@ -32,6 +32,7 @@ Demo logins (password for all: `Kaizen-demo-1`):
 ## Status
 
 Slice 1 (foundation) — done: tenancy, roles, sessions, tamper-evident audit log.
+Slice 4 (incidents) — done: ten incident types, Reg 35 restraint record, missing episodes, Reg 40 notifications, rule-generated follow-ups with owners and deadlines.
 Slice 3 (daily recording) — done: shift board, daily logs with draft recovery, handovers, key-work, child's voice.
 Slice 2 (child record) — done: Schedule 3 record, placements, placement plans and risk assessments with a draft → submitted → reviewed → locked → amend lifecycle, chronology, documents, access management.
 

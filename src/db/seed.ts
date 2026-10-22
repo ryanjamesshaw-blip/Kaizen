@@ -2,7 +2,9 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 import * as schema from "./schema";
+import { dueDate, tasksFor } from "../lib/rules/incidents";
 
 /**
  * Demo data. All names fictional. Every role has a login so each screen can
@@ -240,8 +242,47 @@ async function main() {
     });
   }
 
+  // ---- Incidents with rule-generated follow-ups ----
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000);
+  const kayden = placed.find((c) => c.firstName === "Kayden")!;
+  const amelia = placed.find((c) => c.firstName === "Amelia")!;
+  const oakCw = byEmail["cw1.oak@demo.kaizen"]; const oakRm = byEmail["rm.oak@demo.kaizen"];
+  async function seedIncident(c: typeof kayden, inc: Omit<typeof schema.incidents.$inferInsert, "organisationId" | "homeId" | "childId" | "createdBy" | "updatedBy">, injuries = false) {
+    const [row] = await db.insert(schema.incidents).values({ ...inc, organisationId: org.id, homeId: c.homeId, childId: c.id, status: inc.status ?? "submitted", submittedAt: inc.occurredAt, submittedBy: oakCw, createdBy: oakCw, updatedBy: oakCw }).returning();
+    const specs = tasksFor({ type: row.type, severity: row.severity, occurredAt: row.occurredAt, injuries, policeInvolved: false, childId: c.id });
+    await db.insert(schema.followUpTasks).values(specs.map((sp) => ({ organisationId: org.id, homeId: c.homeId, childId: c.id, incidentId: row.id, ruleKey: sp.key, title: sp.title, detail: sp.detail ?? null, regulation: sp.regulation, ownerRole: sp.ownerRole, dueAt: dueDate(row.occurredAt, sp.dueHours), createdBy: oakCw })));
+    await db.insert(schema.chronologyEntries).values({ organisationId: org.id, homeId: c.homeId, childId: c.id, occurredOn: new Date(row.occurredAt.toISOString().slice(0, 10) + "T00:00:00Z"), category: row.type === "missing" ? "missing" : "incident", summary: `${row.type === "missing" ? "Missing episode" : row.type === "physical_intervention" ? "Physical intervention" : "Incident"} (${row.severity})`, detail: row.narrative.slice(0, 200), significant: true, sourceType: "incident", sourceId: row.id, createdBy: oakCw });
+    return row;
+  }
+  // Physical intervention 30h ago — child's view and manager sign-off still outstanding (some tasks overdue)
+  const piInc = await seedIncident(kayden, {
+    type: "physical_intervention", severity: "high", occurredAt: hoursAgo(30), location: "Lounge", staffInvolved: "Aisha Rahman, Liam Doyle", witnesses: "Tom Barnes",
+    antecedent: "Contact with mum was cancelled at short notice. Kayden became increasingly agitated through the afternoon.",
+    narrative: "At 17:40 Kayden threw a glass at the TV, then picked up a second glass and moved towards Liam holding it raised. Verbal de-escalation and offering space did not work. Aisha and Liam used a Team Teach single-elbow hold to guide him to the garden. Hold released after 3 minutes once he dropped the glass and sat down.",
+    immediateActions: "Glass cleared, Kayden given space in the garden with Aisha, cold drink. Manager informed by phone 18:05.", injuries: "Small graze to Liam's forearm, cleaned and dressed. None to Kayden.",
+    notifyOfsted: false, notifyPlacingAuthority: true, notifyPolice: false, notifyLado: false,
+  }, true);
+  await db.insert(schema.physicalInterventions).values({ organisationId: org.id, homeId: kayden.homeId, incidentId: piInc.id, childId: kayden.id, holdType: "Team Teach single-elbow (two staff)", startedAt: hoursAgo(30), durationMinutes: 3, staffApplying: "Aisha Rahman, Liam Doyle", deEscalationAttempted: "Calm voice, offered to go out to the garden, offered a phone call to mum later, gave space for ~10 minutes.", justification: "Immediate risk of serious injury to staff from a raised glass.", injuriesChild: null, injuriesStaff: "Graze to forearm", medicalAttention: "First aid on site", effectiveness: "Effective within 3 minutes; Kayden calmed quickly once outside." });
+  // Missing episode 5 days ago — returned, closed off properly, locked
+  const mInc = await seedIncident(kayden, {
+    type: "missing", severity: "high", occurredAt: daysAgo(5), location: "Left from the home",
+    narrative: "Kayden left the house at 19:40 after an argument about screen time, without saying where he was going. Not answering his phone. Friends contacted; no sightings by 20:40 so police were called.",
+    immediateActions: "Staff drove round known locations. Police informed 20:45. Social worker informed by voicemail.", status: "locked", reviewedAt: daysAgo(4), reviewedBy: oakRm, lockedAt: daysAgo(4), lockedBy: oakRm,
+    notifyOfsted: true, notifyPlacingAuthority: true, notifyPolice: true, notifyLado: false, managerReviewNotes: "Response was timely. Trigger plan to be updated to include screen-time disputes.", lessonsLearned: "Agree screen-time rules in advance with Kayden at next key-work.",
+  });
+  const returned = new Date(daysAgo(5).getTime() + 3.5 * 3_600_000);
+  await db.insert(schema.missingEpisodes).values({ organisationId: org.id, homeId: kayden.homeId, incidentId: mInc.id, childId: kayden.id, leftAt: daysAgo(5), circumstances: "Grey hoodie, black joggers, had phone (off).", classification: "missing", policeInformedAt: new Date(daysAgo(5).getTime() + 65 * 60_000), policeReference: "DER-2026-10-17-0412", returnedAt: returned, returnedHow: "Found at a friend's house by staff and brought home", conditionOnReturn: "Fine physically, quiet.", returnConversationAt: new Date(returned.getTime() + 30 * 60_000), returnConversationNotes: "Said he just needed space, was at Jordan's. Knows to say where he's going next time.", independentInterviewOfferedAt: daysAgo(4), independentInterviewAt: daysAgo(3), independentInterviewBy: "LA missing coordinator" });
+  await db.update(schema.followUpTasks).set({ status: "done", completedAt: daysAgo(3), completedBy: oakRm, completionNote: "Seed: completed" }).where(eq(schema.followUpTasks.incidentId, mInc.id));
+  await db.insert(schema.notifications).values([
+    { organisationId: org.id, homeId: kayden.homeId, incidentId: mInc.id, childId: kayden.id, recipient: "police", sentAt: new Date(daysAgo(5).getTime() + 65 * 60_000), sentBy: oakCw, method: "101", reference: "DER-2026-10-17-0412" },
+    { organisationId: org.id, homeId: kayden.homeId, incidentId: mInc.id, childId: kayden.id, recipient: "ofsted", sentAt: daysAgo(4), sentBy: oakRm, method: "Ofsted online notification", reference: "OFS-33812" },
+    { organisationId: org.id, homeId: kayden.homeId, incidentId: mInc.id, childId: kayden.id, recipient: "placing_authority", sentAt: daysAgo(5), sentBy: oakCw, method: "Phone / voicemail" },
+  ]);
+  // Minor accident for Amelia, low severity
+  await seedIncident(amelia, { type: "accident", severity: "low", occurredAt: daysAgo(2), location: "Kitchen", narrative: "Amelia caught her hand on the oven door while taking out a tray. Small red mark, no blister. Ran under cold water for 10 minutes.", immediateActions: "Cold water, checked after an hour — no blister.", injuries: "Minor burn to left hand, first aid given.", notifyPlacingAuthority: false });
+
   await client.end();
-  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children with daily records. Password for all: ${DEMO_PASSWORD}`);
+  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children with daily records and incidents. Password for all: ${DEMO_PASSWORD}`);
 }
 
 main().catch((e) => {
