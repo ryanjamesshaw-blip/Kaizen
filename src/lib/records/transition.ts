@@ -1,17 +1,19 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { placementPlans, riskAssessments } from "@/db/schema";
+import { dailyLogs, keyworkSessions, placementPlans, riskAssessments } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { Forbidden } from "@/lib/auth/guard";
 import { requestMeta, type CurrentUser } from "@/lib/auth/session";
 import { canTransition, nextStatus, type Transition } from "./lifecycle";
 
-export type LifecycleTable = "risk_assessment" | "placement_plan";
+export type LifecycleTable = "risk_assessment" | "placement_plan" | "daily_log" | "keywork_session";
 
 const TABLES = {
   risk_assessment: riskAssessments,
   placement_plan: placementPlans,
+  daily_log: dailyLogs,
+  keywork_session: keyworkSessions,
 } as const;
 
 /**

@@ -497,3 +497,129 @@ export type PlacementPlan = typeof placementPlans.$inferSelect;
 export type RiskAssessment = typeof riskAssessments.$inferSelect;
 export type ChronologyEntry = typeof chronologyEntries.$inferSelect;
 export type Document = typeof documents.$inferSelect;
+
+// ===========================================================================
+// Slice 3 — Daily recording: daily logs (Reg 36 case records), handovers
+// (Sch 4 para 3 staffing context), key-work (Reg 7, Reg 11), child's voice
+// (Reg 7). Every table carries organisationId + homeId (hard rule #2).
+// ===========================================================================
+
+export const shiftEnum = pgEnum("shift", ["early", "late", "night", "day"]);
+export const moodEnum = pgEnum("mood", ["settled", "happy", "anxious", "low", "angry", "mixed", "not_seen"]);
+export const voiceMethodEnum = pgEnum("voice_method", [
+  "conversation",
+  "keywork",
+  "house_meeting",
+  "written",
+  "advocate",
+  "complaint",
+  "survey",
+  "other",
+]);
+
+/** One record per child per shift. Structured prompts + narrative. */
+export const dailyLogs = pgTable(
+  "daily_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    logDate: timestamp("log_date", { mode: "date" }).notNull(),
+    shift: shiftEnum("shift").notNull(),
+    mood: moodEnum("mood").notNull().default("settled"),
+    // Structured prompts (Reg 6 quality of care; Reg 8 education; Reg 10 health; Reg 9 enjoyment)
+    attendedEducation: boolean("attended_education"),
+    educationNotes: text("education_notes"),
+    meals: text("meals"),
+    activities: text("activities"),
+    contactWithFamily: text("contact_with_family"),
+    healthNotes: text("health_notes"),
+    medicationGiven: boolean("medication_given"),
+    bedtime: text("bedtime"),
+    sleep: text("sleep"),
+    // Narrative
+    narrative: text("narrative").notNull(),
+    positives: text("positives"),
+    concerns: text("concerns"),
+    /** Links to incidents raised this shift (slice 4 will populate) */
+    incidentRaised: boolean("incident_raised").notNull().default(false),
+    supersedesId: uuid("supersedes_id"),
+    ...lifecycleColumns,
+  },
+  (t) => [index("daily_logs_child_date_idx").on(t.childId, t.logDate), index("daily_logs_home_date_idx").on(t.homeId, t.logDate)],
+);
+
+/** Shift handover for the whole home. */
+export const handovers = pgTable(
+  "handovers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    handoverDate: timestamp("handover_date", { mode: "date" }).notNull(),
+    fromShift: shiftEnum("from_shift").notNull(),
+    toShift: shiftEnum("to_shift").notNull(),
+    /** Per-child one-liners: [{ childId, note }] */
+    childNotes: jsonb("child_notes").$type<Array<{ childId: string; note: string }>>().notNull().default([]),
+    homeNotes: text("home_notes"),
+    tasksCarriedForward: text("tasks_carried_forward"),
+    staffOnDuty: text("staff_on_duty"),
+    /** Who received the handover */
+    receivedBy: uuid("received_by").references(() => users.id),
+    receivedAt: timestamp("received_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: uuid("updated_by").references(() => users.id),
+  },
+  (t) => [index("handovers_home_date_idx").on(t.homeId, t.handoverDate)],
+);
+
+/** Planned one-to-one session between a child and their key worker. */
+export const keyworkSessions = pgTable(
+  "keywork_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    sessionDate: timestamp("session_date", { mode: "date" }).notNull(),
+    durationMinutes: integer("duration_minutes"),
+    topics: text("topics").notNull(),
+    discussion: text("discussion").notNull(),
+    childsWords: text("childs_words"),
+    actionsAgreed: text("actions_agreed"),
+    nextSessionOn: timestamp("next_session_on", { mode: "date" }),
+    supersedesId: uuid("supersedes_id"),
+    ...lifecycleColumns,
+  },
+  (t) => [index("keywork_child_idx").on(t.childId, t.sessionDate)],
+);
+
+/** Something the child said or asked for, and what happened as a result (Reg 7). */
+export const childVoice = pgTable(
+  "child_voice",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").notNull().references(() => children.id),
+    recordedOn: timestamp("recorded_on", { mode: "date" }).notNull(),
+    method: voiceMethodEnum("method").notNull().default("conversation"),
+    /** In the child's own words wherever possible */
+    whatTheChildSaid: text("what_the_child_said").notNull(),
+    response: text("response"),
+    outcome: text("outcome"),
+    respondedBy: uuid("responded_by").references(() => users.id),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("child_voice_child_idx").on(t.childId, t.recordedOn)],
+);
+
+export type DailyLog = typeof dailyLogs.$inferSelect;
+export type Handover = typeof handovers.$inferSelect;
+export type KeyworkSession = typeof keyworkSessions.$inferSelect;
+export type ChildVoice = typeof childVoice.$inferSelect;

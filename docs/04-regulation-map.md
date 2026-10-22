@@ -6,12 +6,12 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 
 | Reg | Standard | Evidence in system |
 |-----|----------|--------------------|
-| 6 | Quality and purpose of care | Statement of Purpose (versioned), placement plan, daily logs, child voice |
-| 7 | Children's views, wishes and feelings | Child voice records, key-work sessions, complaints, Reg 44 "children spoken to". **Slice 2:** child's-views field on every risk assessment and placement plan |
-| 8 | Education | Education section of child record, PEP, school reports (Sch 3 para 18), attendance in daily logs |
-| 9 | Enjoyment and achievement | Activities in daily logs, achievements in chronology |
+| 6 | Quality and purpose of care | Statement of Purpose (versioned), placement plan, daily logs, child voice. **Slice 3:** daily log per child per shift with structured prompts and narrative |
+| 7 | Children's views, wishes and feelings | Child voice records, key-work sessions, complaints, Reg 44 "children spoken to". **Slice 2:** child's-views field on every risk assessment and placement plan. **Slice 3:** child's voice records (what was said, response, outcome; unanswered ones flagged); key-work child's-words auto-recorded |
+| 8 | Education | Education section of child record, PEP, school reports (Sch 3 para 18), attendance in daily logs. **Slice 3:** attended-education prompt on every log |
+| 9 | Enjoyment and achievement | Activities in daily logs, achievements in chronology. **Slice 3:** activities and positives prompts |
 | 10 | Health and well-being | Health section (Sch 3 paras 21–26), MAR, health appointments, risk assessments |
-| 11 | Positive relationships | Key-work, contact records (Sch 3 para 16), behaviour support plans |
+| 11 | Positive relationships | Key-work, contact records (Sch 3 para 16), behaviour support plans. **Slice 3:** key-work sessions with actions agreed and next date |
 | 12 | Protection of children | Risk assessments, safeguarding incidents, missing episodes, Reg 40 notifications, policies (Reg 34). **Slice 2:** versioned risk assessments with review dates; overdue reviews surfaced on the home page |
 | 13 | Leadership and management | Supervision, training matrix, Reg 44/45, action tracker, audit engine dashboard. **Slice 1:** organisation → home → staff structure, scoped roles, audit log |
 | 14 | Care planning | Placement plan (Regs 17/18), LA care plan copies (Sch 3 para 19), review outcomes (Sch 3 para 20). **Slice 2:** placement plan with lifecycle; documents of type care plan / review record |
@@ -36,7 +36,7 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 |-----|---------|---------|
 | 27 / 28 | Manager appointment and fitness | Home record: RM, qualification, date appointed, Ofsted registration. **Slice 1:** home record with URN, RM membership |
 | 29 | CPD of RP and RI | Training record for RI and directors |
-| 31 | Staffing | Rota (Sch 4 para 3) and ratios check against SoP |
+| 31 | Staffing | Rota (Sch 4 para 3) and ratios check against SoP. **Slice 3:** shift handover with staff on duty and received-by acknowledgement |
 | 32 | Fitness of workers (Schedule 2) | Staff record: ID, DBS, two references, qualifications, employment history, gaps explained; rule: no shift until complete |
 | 33 | Employment of staff | Supervision (frequency rule), appraisal, induction, training matrix |
 

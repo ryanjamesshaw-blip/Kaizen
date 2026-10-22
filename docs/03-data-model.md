@@ -23,12 +23,12 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **chronology_entries** — occurredOn, category, summary, detail, significant, sourceType/sourceId when system-generated (admission and discharge are)
 - **documents** — typed, title, file metadata, bytes in `content` (bytea, ≤10 MB) until object storage is chosen
 
-## Daily recording — slice 3
+## Daily recording — slice 3 (live)
 
-- **daily_log** — child, shift, author, free text + structured prompts (mood, meals, school, activities, contact, bedtime), countersign
-- **handover** — home, shift, author, per-child notes, home notes, tasks carried forward
-- **keywork_session** — child, keyworker, topics, child's words, actions
-- **child_voice** — child, how captured, content, response given, linked record
+- **daily_logs** — child × date × shift; mood; prompts (education, meals, activities, contact, health, medication, bedtime, sleep); narrative, positives, concerns; lifecycle columns
+- **handovers** — home × date, from/to shift, `childNotes` jsonb, home notes, tasks carried forward, staff on duty, receivedBy/At
+- **keywork_sessions** — child × date, duration, topics, discussion, child's words, actions agreed, next session; lifecycle columns
+- **child_voice** — child × date, method, what the child said, immediate response, outcome + respondedBy/At
 
 ## Incidents — slice 4
 

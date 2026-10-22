@@ -28,6 +28,7 @@ export default async function OverviewPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Today's shift" value="Open" href="/shift" />
         <Stat label="Homes" value={homesList.length} href="/homes" />
         <Stat label="Active staff & access" value={activeStaff.length} href="/staff" />
         <Stat label="Audit log" value="Open" href="/audit" />
@@ -57,12 +58,14 @@ export default async function OverviewPage() {
       <section className="card">
         <h2 className="text-base font-semibold">What&apos;s built so far</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
+          <li>Daily logs per child per shift, handovers, key-work sessions and the child&apos;s voice, all through the same review-and-lock lifecycle</li>
+          <li>Child record to Schedule 3: placement, plan, risk assessments, chronology, documents</li>
           <li>Organisation → home → staff structure with eight roles and scoped visibility</li>
           <li>Sign-in with lockout after repeated failures; sessions expire after 20 minutes idle</li>
           <li>Tamper-evident audit log: append-only at the database level and hash-chained</li>
           <li>Time-boxed access for inspectors and the Reg 44 independent person</li>
         </ul>
-        <p className="mt-3 text-sm text-muted">Next: the child record (Schedule 3), placement plans, risk assessments and chronology.</p>
+        <p className="mt-3 text-sm text-muted">Next: incidents, missing episodes and physical interventions with automatic follow-ups.</p>
       </section>
     </div>
   );

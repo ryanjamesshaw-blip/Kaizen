@@ -32,6 +32,7 @@ Demo logins (password for all: `Kaizen-demo-1`):
 ## Status
 
 Slice 1 (foundation) — done: tenancy, roles, sessions, tamper-evident audit log.
+Slice 3 (daily recording) — done: shift board, daily logs with draft recovery, handovers, key-work, child's voice.
 Slice 2 (child record) — done: Schedule 3 record, placements, placement plans and risk assessments with a draft → submitted → reviewed → locked → amend lifecycle, chronology, documents, access management.
 
 `npx tsx scripts/verify-audit.mts` walks the audit hash chain from the shell.

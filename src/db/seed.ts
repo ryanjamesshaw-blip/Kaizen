@@ -192,8 +192,56 @@ async function main() {
     }
   }
 
+  // ---- Daily recording (last 5 days) ----
+  const placed = await db.select({ id: schema.children.id, homeId: schema.children.homeId, firstName: schema.children.firstName }).from(schema.children);
+  const narratives = [
+    "A settled shift. Up on time, ate breakfast with the group and went to school without any fuss. Spent the evening on the Xbox with Tom and was in bed by 21:45.",
+    "Quiet start, a bit low after a phone call with family. Talked it through on the walk to the shop; by tea time was laughing with the others. Helped cook pasta.",
+    "Refused school in the morning and stayed in bed until 10. Staff gave space then sat with them; agreed to go in for the afternoon. Good evening — football in the garden.",
+    "Busy day: dentist at 11 (no treatment needed), then swimming. Tired by evening, asked for an early night.",
+    "Unsettled at bedtime, worried about a test tomorrow. Staff sat outside the room until asleep around 23:20.",
+  ];
+  const moods = ["settled", "low", "mixed", "happy", "anxious"] as const;
+  for (const c of placed) {
+    const cwId = c.homeId === oak.id ? byEmail["cw1.oak@demo.kaizen"] : byEmail["cw1.willow@demo.kaizen"];
+    const rmId = c.homeId === oak.id ? byEmail["rm.oak@demo.kaizen"] : byEmail["rm.willow@demo.kaizen"];
+    for (let i = 1; i <= 5; i++) {
+      if (c.firstName === "Riley" && i > 3) continue; // admitted 4 days ago
+      const d = daysAgo(i);
+      const status = i >= 3 ? "locked" : i === 2 ? "submitted" : "draft";
+      const stamps = status === "locked" ? { submittedAt: d, submittedBy: cwId, reviewedAt: d, reviewedBy: rmId, lockedAt: d, lockedBy: rmId } : status === "submitted" ? { submittedAt: d, submittedBy: cwId } : {};
+      await db.insert(schema.dailyLogs).values({
+        organisationId: org.id, homeId: c.homeId, childId: c.id, logDate: d, shift: "late", mood: moods[(i + c.firstName.length) % 5],
+        narrative: narratives[(i + c.firstName.length) % 5], attendedEducation: i !== 3, meals: "Breakfast, packed lunch, pasta for tea", bedtime: "21:45",
+        concerns: i === 2 && c.firstName === "Kayden" ? "Mentioned an older lad at the park offering him vapes." : null,
+        status, ...stamps, createdBy: cwId, updatedBy: cwId,
+      });
+    }
+    if (c.firstName !== "Riley") {
+      await db.insert(schema.keyworkSessions).values({
+        organisationId: org.id, homeId: c.homeId, childId: c.id, sessionDate: daysAgo(9), durationMinutes: 40,
+        topics: "Contact, school, saving for a bike", discussion: "Talked about how contact is going and what would make school easier. Agreed to ask the teacher about a quiet space at lunch.",
+        childsWords: "I want to see my nan more. School is alright when people leave me alone.", actionsAgreed: "Key worker to ask SW about extra contact (by Friday). Staff to help open a savings jar.",
+        nextSessionOn: inDays(5), status: "locked", submittedAt: daysAgo(9), submittedBy: cwId, reviewedAt: daysAgo(8), reviewedBy: rmId, lockedAt: daysAgo(8), lockedBy: rmId, createdBy: cwId, updatedBy: cwId,
+      });
+      await db.insert(schema.childVoice).values([
+        { organisationId: org.id, homeId: c.homeId, childId: c.id, recordedOn: daysAgo(9), method: "keywork", whatTheChildSaid: "I want to see my nan more. School is alright when people leave me alone.", response: "Key worker to ask SW about extra contact.", outcome: "SW agreed an extra fortnightly visit from next month.", respondedBy: rmId, respondedAt: daysAgo(6), createdBy: cwId },
+        { organisationId: org.id, homeId: c.homeId, childId: c.id, recordedOn: daysAgo(2), method: "house_meeting", whatTheChildSaid: "Can we have pizza night on Fridays instead of Saturdays?", response: "Will raise at team meeting.", createdBy: cwId },
+      ]);
+    }
+  }
+  for (const h of [oak, willow]) {
+    const cwId = h.id === oak.id ? byEmail["cw1.oak@demo.kaizen"] : byEmail["cw1.willow@demo.kaizen"];
+    const hk = placed.filter((c) => c.homeId === h.id);
+    await db.insert(schema.handovers).values({
+      organisationId: org.id, homeId: h.id, handoverDate: daysAgo(1), fromShift: "late", toShift: "night",
+      childNotes: hk.map((c) => ({ childId: c.id, note: `${c.firstName} settled by 22:00; nothing outstanding.` })),
+      homeNotes: "Boiler engineer booked for Thursday 10am. Petty cash tin £142.30.", tasksCarriedForward: "Chase school re: transport letter.", staffOnDuty: "Night: Liam", createdBy: cwId, updatedBy: cwId,
+    });
+  }
+
   await client.end();
-  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children. Password for all: ${DEMO_PASSWORD}`);
+  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children with daily records. Password for all: ${DEMO_PASSWORD}`);
 }
 
 main().catch((e) => {

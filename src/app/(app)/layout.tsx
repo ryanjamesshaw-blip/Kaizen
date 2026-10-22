@@ -5,6 +5,7 @@ import { ROLE_LABELS } from "@/lib/rbac";
 
 const NAV = [
   { href: "/", label: "Overview" },
+  { href: "/shift", label: "Shift" },
   { href: "/homes", label: "Homes" },
   { href: "/children", label: "Children" },
   { href: "/staff", label: "Staff & access" },

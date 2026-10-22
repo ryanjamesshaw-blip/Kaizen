@@ -357,8 +357,13 @@ export async function transitionRecord(table: LifecycleTable, id: string, childI
     if (e instanceof Forbidden) throw e;
     throw e;
   }
-  const seg = table === "risk_assessment" ? "risk" : "plan";
-  redirect(`/children/${childId}/${seg}/${newId}`);
+  const target: Record<LifecycleTable, string> = {
+    risk_assessment: `/children/${childId}/risk/${newId}`,
+    placement_plan: `/children/${childId}/plan/${newId}`,
+    daily_log: `/shift/log/${newId}`,
+    keywork_session: `/children/${childId}/keywork/${newId}`,
+  };
+  redirect(target[table]);
 }
 
 // ---------------------------------------------------------------------------
