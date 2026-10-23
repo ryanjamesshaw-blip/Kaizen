@@ -10,6 +10,9 @@ import { StatusPill, LevelPill, fmtDate, fmtDateTime } from "@/components/record
 import { LEGAL_LABEL } from "@/components/child-form";
 import { listIncidents } from "@/lib/incidents/queries";
 import { INCIDENT_TYPE_LABEL } from "@/lib/rules/incidents";
+import { draftsFor } from "@/lib/ai/queries";
+import { draftChronology } from "@/lib/ai/actions";
+import { AiDraftPanel } from "@/components/ai-draft";
 
 const CHRONO: Array<[string, string]> = [["other", "Other"], ["placement", "Placement"], ["education", "Education"], ["health", "Health"], ["contact", "Contact"], ["incident", "Incident"], ["missing", "Missing"], ["safeguarding", "Safeguarding"], ["achievement", "Achievement"], ["review", "Review / meeting"]];
 const DOC: Array<[string, string]> = [["care_plan", "Care plan (LA)"], ["placement_plan", "Placement plan"], ["pathway_plan", "Pathway plan"], ["pep", "Personal education plan"], ["ehcp", "EHC plan"], ["health_assessment", "Health assessment"], ["school_report", "School report"], ["review_record", "Review record"], ["court_order", "Court order"], ["consent", "Consent form"], ["photo", "Photo"], ["other", "Other"]];
@@ -28,6 +31,7 @@ export default async function ChildPage({ params }: { params: Promise<{ childId:
   const currentPlan = b.plans.find((p) => !b.plans.some((o) => o.supersedesId === p.id)) ?? null;
   const overdue = currentRisks.filter(({ r }) => isOverdue(r.reviewDueOn));
   const recentIncidents = await listIncidents(user, child.organisationId, { childId: child.id, limit: 8 });
+  const ai = await draftsFor("chronology_summary", child.id);
 
   return (
     <div className="space-y-6">
@@ -132,6 +136,8 @@ export default async function ChildPage({ params }: { params: Promise<{ childId:
               </ul>
             )}
           </section>
+
+          {(canWrite || ai.drafts.length > 0) && <AiDraftPanel title="Chronology summary" drafts={ai.drafts} names={ai.names} request={draftChronology.bind(null, child.id)} requestLabel="Summarise the chronology" canRequest={canWrite} canDecide={canWrite} />}
 
           <section className="card">
             <h2 className="mb-3 text-base font-semibold">Chronology</h2>

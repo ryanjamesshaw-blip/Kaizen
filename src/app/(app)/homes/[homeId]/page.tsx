@@ -56,6 +56,7 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
     { href: `/governance?home=${home.id}`, label: "Governance (Reg 44 / 45)", status: "Visits and reviews", bad: false },
     { href: `/homes/${home.id}/visitors`, label: "Visitors book", status: "Schedule 4", bad: false },
     { href: `/homes/${home.id}/evidence-pack`, label: "Inspection evidence pack", status: "Printable, SCCIF order", bad: false },
+    { href: `/homes/${home.id}/mock-inspection`, label: "Mock inspection", status: "SCCIF judgements + AI report", bad: false },
   ];
   const staff = staffAll.filter((s) => s.homeId === home.id);
   const overdue = risks.filter((r) => isOverdue(r.reviewDueOn) && r.status !== "locked");

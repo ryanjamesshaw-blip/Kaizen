@@ -32,6 +32,7 @@ Demo logins (password for all: `Kaizen-demo-1`):
 ## Status
 
 Slice 1 (foundation) — done: tenancy, roles, sessions, tamper-evident audit log.
+Slice 9 (AI layer) — done: mock SCCIF inspection (deterministic judgements + AI report and action plan), Reg 45 narrative drafts, chronology summaries, daily-log feedback; every draft human-accepted. Set `ANTHROPIC_API_KEY` (or `AI_PROVIDER=mock` locally).
 Slice 8 (audit engine) — done: 19 continuous rules that create, resolve and escalate follow-ups on their own; compliance score per home; `npm run engine` or POST /api/engine/run on a schedule.
 Slice 7 (inspection) — done: inspector landing page, printable SCCIF evidence pack, visitors book, per-account access trail.
 Slice 6 (governance) — done: Reg 44 visits with recommendations as tracked actions, Reg 45 reviews built from a system data snapshot with RI sign-off, cross-home dashboard.

@@ -69,9 +69,10 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **follow_up_tasks** gained `subjectKey` (finding identity) and `escalatedAt`; engine tasks have `sourceType = 'engine'`
 - **rule_runs** — per home per run: summary jsonb per rule (findings/created/resolved/escalated), score, duration
 
-## AI — slice 9
+## AI — slice 9 (live)
 
-- **ai_draft**
+- **ai_drafts** — target (reg45_review / chronology_summary / log_feedback / mock_inspection), targetId, promptVersion, model, inputHash, token counts, output text, outputJson (action plan + judgements), status (draft/accepted/rejected), decidedBy/At, note
+- No other table is written by AI. Accepting a Reg 45 draft appends it to the review summary; creating actions from a mock inspection inserts follow_up_tasks with `sourceType = 'mock_inspection'` — both are explicit human clicks
 
 ## Retention
 

@@ -5,7 +5,7 @@ import type { ActionState } from "@/lib/children/actions";
 
 type Props = {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   submitLabel: string;
   successMessage?: string;
   className?: string;

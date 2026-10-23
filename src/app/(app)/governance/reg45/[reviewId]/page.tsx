@@ -12,6 +12,9 @@ import { ActionForm, Area, DateInput } from "@/components/form";
 import { StatusPill, fmtDate, fmtDateTime } from "@/components/record-status";
 import { TaskList } from "@/components/task-list";
 import { nowMs } from "@/lib/time";
+import { draftsFor } from "@/lib/ai/queries";
+import { draftReg45, acceptReg45Draft } from "@/lib/ai/actions";
+import { AiDraftPanel } from "@/components/ai-draft";
 
 const RATING_TONE: Record<string, string> = { strong: "text-ok", adequate: "", requires_improvement: "text-danger", not_assessed: "text-muted" };
 
@@ -33,6 +36,7 @@ export default async function Reg45Page({ params }: { params: Promise<{ reviewId
   const m = r.dataSnapshot as unknown as HomeMetrics;
   const now = nowMs();
   const byReg = Object.fromEntries(r.standards.map((s) => [s.regulation, s]));
+  const ai = await draftsFor("reg45_review", r.id);
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
@@ -64,6 +68,10 @@ export default async function Reg45Page({ params }: { params: Promise<{ reviewId
             <N k="Statement of Purpose" v={m.governance.sopOnFile ? "On file" : "Missing"} s={m.governance.sopNotified ? "Ofsted notified" : "not notified"} bad={!m.governance.sopOnFile || !m.governance.sopNotified} />
           </div>
         </section>
+      )}
+
+      {(editable || ai.drafts.length > 0) && (
+        <AiDraftPanel title="Narrative" drafts={ai.drafts} names={ai.names} request={draftReg45.bind(null, r.id)} requestLabel="Draft the narrative from the numbers" canRequest={editable} canDecide={editable} accentAction={ai.drafts[0] ? { label: "Insert into summary", action: acceptReg45Draft, draftId: ai.drafts[0].id } : null} />
       )}
 
       {editable ? (

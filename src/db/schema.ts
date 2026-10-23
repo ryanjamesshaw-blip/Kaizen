@@ -1203,3 +1203,41 @@ export const ruleRuns = pgTable(
 );
 
 export type RuleRun = typeof ruleRuns.$inferSelect;
+
+// ===========================================================================
+// Slice 9 — AI drafts. Hard rule #5: AI output lands here as a draft; it
+// never submits, locks or notifies. A human accepts or rejects every draft.
+// ===========================================================================
+
+export const aiTargetEnum = pgEnum("ai_target", ["reg45_review", "chronology_summary", "log_feedback", "mock_inspection"]);
+export const aiStatusEnum = pgEnum("ai_status", ["draft", "accepted", "rejected"]);
+
+export const aiDrafts = pgTable(
+  "ai_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    childId: uuid("child_id").references(() => children.id),
+    target: aiTargetEnum("target").notNull(),
+    targetId: uuid("target_id"),
+    promptVersion: text("prompt_version").notNull(),
+    model: text("model").notNull(),
+    /** sha256 of the exact input the model saw, so a draft can be tied to the records at that moment. */
+    inputHash: text("input_hash").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    output: text("output").notNull(),
+    /** Structured part of the output when the prompt asks for one (scores, actions). */
+    outputJson: jsonb("output_json").$type<Record<string, unknown>>(),
+    status: aiStatusEnum("status").notNull().default("draft"),
+    decidedBy: uuid("decided_by").references(() => users.id),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decisionNote: text("decision_note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by").references(() => users.id),
+  },
+  (t) => [index("ai_drafts_target_idx").on(t.target, t.targetId), index("ai_drafts_home_idx").on(t.homeId, t.createdAt)],
+);
+
+export type AiDraft = typeof aiDrafts.$inferSelect;

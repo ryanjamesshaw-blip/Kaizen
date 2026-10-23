@@ -28,7 +28,7 @@ export default async function InspectionPage() {
         const canExport = can(user.grants, "inspection:export", scope);
         return (
           <section key={h.id} className="card">
-            <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold">{h.name} <span className="font-normal text-muted">· URN {h.ofstedUrn ?? "—"}</span></h2>{canExport && <Link href={`/homes/${h.id}/evidence-pack`} className="btn">Evidence pack</Link>}</div>
+            <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold">{h.name} <span className="font-normal text-muted">· URN {h.ofstedUrn ?? "—"}</span></h2>{canExport && <div className="flex gap-2"><Link href={`/homes/${h.id}/mock-inspection`} className="btn-ghost">Mock inspection</Link><Link href={`/homes/${h.id}/evidence-pack`} className="btn">Evidence pack</Link></div>}</div>
             <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <L href={`/homes/${h.id}`} t="Home overview" d="Children, team, running the home" />
               <L href={`/homes/${h.id}/documents`} t="Statement of Purpose, Children's Guide, policies" d="Reg 16, Reg 34" />

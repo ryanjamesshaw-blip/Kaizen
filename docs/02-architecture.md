@@ -55,9 +55,10 @@ Care workers can edit their own drafts. Once submitted, only a manager can retur
 
 ## AI boundary (slice 9)
 
-- AI never writes to a locked record and never auto-submits. It produces drafts into a clearly marked AI-draft state.
-- Prompts include the home's own records only, under the user's existing permissions.
-- Every AI output stores prompt version, model, and the human who accepted or rejected it.
+- One door: `lib/ai/client.ts` (`complete()`), Claude via `@anthropic-ai/sdk`, model from `AI_MODEL` (default `claude-sonnet-5-5`); `AI_PROVIDER=mock` gives deterministic output for local testing. Without a key the buttons say so and everything else works.
+- Prompts are pure builders in `lib/ai/prompts.ts`, versioned; actions in `lib/ai/actions.ts` gather only material the calling user may see, then store the result in `ai_drafts` with model, prompt version and a hash of the exact input.
+- AI never writes to any record. Humans accept, reject, insert into a draft they still own, or choose to create tracked actions.
+- Mock inspection judgements are computed by `lib/rules/inspection.ts`, not by the model; the model writes the report around them.
 
 ## Security baseline (slice 1)
 

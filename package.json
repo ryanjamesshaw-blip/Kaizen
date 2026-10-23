@@ -16,6 +16,7 @@
     "engine": "tsx --conditions=react-server scripts/run-engine.mts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.2",

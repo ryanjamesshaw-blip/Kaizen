@@ -11,6 +11,10 @@ import { SaveOrSubmitForm } from "@/components/save-or-submit";
 import { DailyLogFields, SHIFT_LABEL, MOOD_LABEL } from "@/components/daily-log-fields";
 import { StatusPill, fmtDate, fmtDateTime } from "@/components/record-status";
 import { TransitionBar } from "@/components/transition-bar";
+import { draftsFor } from "@/lib/ai/queries";
+import { draftLogFeedback } from "@/lib/ai/actions";
+import { AiDraftPanel } from "@/components/ai-draft";
+import { can } from "@/lib/rbac";
 
 export default async function LogPage({ params }: { params: Promise<{ logId: string }> }) {
   const { logId } = await params;
@@ -23,6 +27,8 @@ export default async function LogPage({ params }: { params: Promise<{ logId: str
   const editable = canTransition("edit", ctx) && !child.archivedAt;
   const transitions = (child.archivedAt ? [] : availableTransitions(ctx)).filter((t) => t !== "submit"); // submit is on the form
   const names = Object.fromEntries((await db.select({ id: users.id, n: users.fullName }).from(users)).map((u) => [u.id, u.n]));
+  const ai = await draftsFor("log_feedback", l.id);
+  const canFeedback = !child.archivedAt && (can(user.grants, "record:review", { organisationId: l.organisationId, homeId: l.homeId }) || l.createdBy === user.id);
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -48,6 +54,7 @@ export default async function LogPage({ params }: { params: Promise<{ logId: str
         </div>
       )}
 
+      {(canFeedback || ai.drafts.length > 0) && <AiDraftPanel title="Writing feedback" drafts={ai.drafts} names={ai.names} request={draftLogFeedback.bind(null, l.id)} requestLabel="Get feedback on this log" canRequest={canFeedback} canDecide={canFeedback} />}
       <TransitionBar table="daily_log" id={l.id} childId={child.id} transitions={transitions} />
       <div className="card text-xs text-muted">
         <div>Created {fmtDateTime(l.createdAt)}</div>
