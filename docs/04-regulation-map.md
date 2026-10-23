@@ -13,7 +13,7 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 | 10 | Health and well-being | Health section (Sch 3 paras 21–26), MAR, health appointments, risk assessments. **Slice 5:** medication register and MAR; allergies shown on the medication page |
 | 11 | Positive relationships | Key-work, contact records (Sch 3 para 16), behaviour support plans. **Slice 3:** key-work sessions with actions agreed and next date |
 | 12 | Protection of children | Risk assessments, safeguarding incidents, missing episodes, Reg 40 notifications, policies (Reg 34). **Slice 2:** versioned risk assessments with review dates; overdue reviews surfaced on the home page. **Slice 4:** incidents, safeguarding concerns, missing episodes; rules create referral/review tasks |
-| 13 | Leadership and management | Supervision, training matrix, Reg 44/45, action tracker, audit engine dashboard. **Slice 1:** organisation → home → staff structure, scoped roles, audit log. **Slice 4:** manager review of every incident; follow-up tasks with owners, deadlines and regulation; RI informed on critical events |
+| 13 | Leadership and management | **Slice 6:** cross-home dashboard for directors and the RI; organisation-wide action tracker (incidents, Reg 44, Reg 45). **Slice 1:** organisation → home → staff structure, scoped roles, audit log. **Slice 4:** manager review of every incident; follow-up tasks with owners, deadlines and regulation; RI informed on critical events |
 | 14 | Care planning | Placement plan (Regs 17/18), LA care plan copies (Sch 3 para 19), review outcomes (Sch 3 para 20). **Slice 2:** placement plan with lifecycle; documents of type care plan / review record |
 
 ## Conduct of the home (Regs 16–25)
@@ -58,8 +58,8 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 
 | Reg | Subject | Feature |
 |-----|---------|---------|
-| 43 / 44 | Independent person visits and reports | Monthly Reg 44 workflow; report, RM response, copy to Ofsted; rule: no visit in month → RI alert. **Slice 1:** `independent_visitor` role, home-scoped and time-boxed |
-| 45 | Review of quality of care | 6-monthly Reg 45 review built from system data; AI draft; RI sign-off |
+| 43 / 44 | Independent person visits and reports | **Slice 6:** visit report with Reg 44(4) opinions (safeguarding; conduct promotes wellbeing), children/staff spoken to, recommendations; submitting turns each recommendation into a tracked action plus manager-response (Reg 44(6)) and Ofsted-copy (Reg 44(7)(c)) tasks; monthly cadence tracked and shown overdue on the dashboard. **Slice 1:** `independent_visitor` role, time-boxed |
+| 45 | Review of quality of care | **Slice 6:** six-monthly review created with a data snapshot from the system (incidents, restraint, missing, follow-ups, logs, key-work, voice, medication, supervision, Sch 2, training, checks, Reg 44); rating + evidence + actions per quality standard (Regs 6–14); actions become tracked; RI signs and locks; Reg 45(4) copy date. AI draft: slice 9 |
 | 46 | Review of premises | **Slice 5:** maintenance log with urgent/safety flags; gas, EICR, PAT, legionella and window-restrictor checks on the schedule. Annual review task: slice 8 |
 | 47 | Financial position | **Slice 5:** petty cash ledger (receipts flagged when missing, witness) and per-child money ledger (Sch 3 para 7) |
 

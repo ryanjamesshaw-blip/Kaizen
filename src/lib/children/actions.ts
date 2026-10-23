@@ -363,6 +363,8 @@ export async function transitionRecord(table: LifecycleTable, id: string, childI
     daily_log: `/shift/log/${newId}`,
     keywork_session: `/children/${childId}/keywork/${newId}`,
     incident: `/incidents/${newId}`,
+    reg44_visit: `/governance/reg44/${newId}`,
+    reg45_review: `/governance/reg45/${newId}`,
   };
   redirect(target[table]);
 }

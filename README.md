@@ -32,6 +32,7 @@ Demo logins (password for all: `Kaizen-demo-1`):
 ## Status
 
 Slice 1 (foundation) — done: tenancy, roles, sessions, tamper-evident audit log.
+Slice 6 (governance) — done: Reg 44 visits with recommendations as tracked actions, Reg 45 reviews built from a system data snapshot with RI sign-off, cross-home dashboard.
 Slice 5 (home operations) — done: Schedule 2 staff files, supervision and training, medication/MAR, scheduled safety checks, maintenance, money ledgers, Statement of Purpose and policies.
 Slice 4 (incidents) — done: ten incident types, Reg 35 restraint record, missing episodes, Reg 40 notifications, rule-generated follow-ups with owners and deadlines.
 Slice 3 (daily recording) — done: shift board, daily logs with draft recovery, handovers, key-work, child's voice.

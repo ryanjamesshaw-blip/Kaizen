@@ -10,6 +10,7 @@ const NAV = [
   { href: "/children", label: "Children" },
   { href: "/incidents", label: "Incidents" },
   { href: "/tasks", label: "Follow-ups" },
+  { href: "/governance", label: "Governance" },
   { href: "/staff", label: "Staff & access" },
   { href: "/audit", label: "Audit log" },
 ];

@@ -348,8 +348,33 @@ async function main() {
     { organisationId: org.id, homeId: oak.id, kind: "policy", title: "Safeguarding and Child Protection Policy", version: "5.0", effectiveFrom: daysAgo(60), reviewDueOn: inDays(300), createdBy: byEmail["ri@demo.kaizen"] },
   ]);
 
+  // ---- Governance ----
+  const reg44 = byEmail["reg44@demo.kaizen"]; const oakRm2 = byEmail["rm.oak@demo.kaizen"]; const ri = byEmail["ri@demo.kaizen"];
+  const [v1] = await db.insert(schema.reg44Visits).values({
+    organisationId: org.id, homeId: oak.id, visitorUserId: reg44, visitedOn: daysAgo(40), announced: false, childrenPresent: 3, childrenSpokenTo: 2, staffSpokenTo: "Sarah Whitfield, Aisha Rahman", othersConsulted: "Kayden's social worker by phone", recordsReviewed: "Daily logs (last 2 weeks), incident records, MAR, Reg 40 notifications, supervision records",
+    safeguardingEffective: true, safeguardingOpinion: "Risk assessments are current and staff could describe each child's triggers and plan. The missing episode on 17 Oct was handled in line with the policy and the return interview was offered within 72 hours.",
+    conductPromotesWellbeing: true, conductOpinion: "Warm, relaxed atmosphere. Children moved freely around the home and spoke positively about staff. Bedrooms personalised.",
+    childrensViews: "Kayden: 'It's alright here, better than the last place.' Amelia asked for pizza night to move to Fridays.", environment: "Clean and well maintained. Loose fence panel in the garden noted (already on the maintenance log).",
+    followUpOnPrevious: "Both recommendations from September completed.", recommendations: "Record the child's view on every restraint record within 24 hours\nChase the Level 3 enrolment for Liam Doyle\nReview the emergency lighting test schedule", reportIssuedOn: daysAgo(37), ofstedCopyOn: daysAgo(36),
+    managerResponse: "Accepted. Child's-view timescale now built into the incident follow-ups. Liam's Level 3 enrolment confirmed for January. Emergency lighting check moved to monthly.", managerRespondedAt: daysAgo(35), managerRespondedBy: oakRm2,
+    status: "locked", submittedAt: daysAgo(37), submittedBy: reg44, reviewedAt: daysAgo(35), reviewedBy: oakRm2, lockedAt: daysAgo(35), lockedBy: oakRm2, createdBy: reg44, updatedBy: reg44,
+  }).returning();
+  await db.insert(schema.followUpTasks).values([
+    { organisationId: org.id, homeId: oak.id, sourceType: "reg44_visit", sourceId: v1.id, ruleKey: "reg44.recommendation.1", title: "Record the child's view on every restraint record within 24 hours", regulation: "Reg 44(5)", ownerRole: "registered_manager", dueAt: daysAgo(9), status: "done", completedAt: daysAgo(20), completedBy: oakRm2, completionNote: "Built into incident follow-ups", createdBy: reg44 },
+    { organisationId: org.id, homeId: oak.id, sourceType: "reg44_visit", sourceId: v1.id, ruleKey: "reg44.recommendation.2", title: "Chase the Level 3 enrolment for Liam Doyle", regulation: "Reg 44(5)", ownerRole: "registered_manager", dueAt: daysAgo(9), status: "open", createdBy: reg44 },
+    { organisationId: org.id, homeId: oak.id, sourceType: "reg44_visit", sourceId: v1.id, ruleKey: "reg44.recommendation.3", title: "Review the emergency lighting test schedule", regulation: "Reg 44(5)", ownerRole: "registered_manager", dueAt: daysAgo(9), status: "done", completedAt: daysAgo(30), completedBy: oakRm2, createdBy: reg44 },
+  ]);
+  await db.insert(schema.reg45Reviews).values({
+    organisationId: org.id, homeId: oak.id, periodFrom: daysAgo(365), periodTo: daysAgo(183),
+    dataSnapshot: { note: "Seeded review — snapshot not captured" },
+    standards: [6, 7, 8, 9, 10, 11, 12, 13, 14].map((reg) => ({ regulation: reg, rating: reg === 13 ? "requires_improvement" : reg === 7 ? "strong" : "adequate", evidence: reg === 13 ? "Two staff overdue for supervision during the period; training matrix incomplete." : "Evidence reviewed; standard met.", actions: reg === 13 ? "Appoint a deputy with responsibility for the supervision schedule" : "" })),
+    summary: "A settled six months with one placement ending positively. Leadership oversight of supervision and training needs tightening.", strengths: "Children's voice; relationships; stable staff team.", areasForImprovement: "Supervision frequency; training matrix; emergency lighting checks.",
+    feedbackFromChildren: "Three children completed the survey; all said they feel safe.", feedbackFromOthers: "Two social workers responded positively; one asked for faster incident notifications.",
+    ofstedCopyOn: daysAgo(170), riSignedAt: daysAgo(172), riSignedBy: ri, status: "locked", submittedAt: daysAgo(175), submittedBy: oakRm2, reviewedAt: daysAgo(172), reviewedBy: ri, lockedAt: daysAgo(172), lockedBy: ri, createdBy: oakRm2, updatedBy: oakRm2,
+  });
+
   await client.end();
-  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children with daily records, incidents and home operations. Password for all: ${DEMO_PASSWORD}`);
+  console.log(`Seeded ${people.length} users, 2 homes, ${kids.length} children with daily records, incidents, home operations and governance. Password for all: ${DEMO_PASSWORD}`);
 }
 
 main().catch((e) => {

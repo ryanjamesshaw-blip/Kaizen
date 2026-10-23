@@ -2,6 +2,9 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/guard";
 import { listVisibleHomes, primaryOrganisation, listStaff } from "@/lib/homes/queries";
 import { ROLE_LABELS, isOrgScope } from "@/lib/rbac";
+import { homeMetrics } from "@/lib/governance/metrics";
+import { OrgDashboard } from "@/components/org-dashboard";
+import { nowMs } from "@/lib/time";
 
 export default async function OverviewPage() {
   const user = await requireUser();
@@ -17,6 +20,10 @@ export default async function OverviewPage() {
   const [homesList, staff] = await Promise.all([listVisibleHomes(user, org.id), listStaff(user, org.id)]);
   const activeStaff = staff.filter((s) => !s.revokedAt && (!s.validTo || s.validTo > new Date()));
   const orgWide = user.role ? isOrgScope(user.role) : false;
+  const now = new Date(nowMs());
+  const metrics = orgWide && user.role !== "system_admin"
+    ? (await Promise.all(homesList.map((h) => homeMetrics(h.id, new Date(now.getTime() - 30 * 86_400_000), now, now)))).filter((m): m is NonNullable<typeof m> => !!m)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -31,8 +38,16 @@ export default async function OverviewPage() {
         <Stat label="Today's shift" value="Open" href="/shift" />
         <Stat label="Homes" value={homesList.length} href="/homes" />
         <Stat label="Active staff & access" value={activeStaff.length} href="/staff" />
-        <Stat label="Audit log" value="Open" href="/audit" />
+        <Stat label="Governance" value="Reg 44 · 45" href="/governance" />
       </div>
+
+      {metrics.length > 0 && (
+        <section>
+          <h2 className="mb-1 text-base font-semibold">Across the organisation</h2>
+          <p className="mb-3 text-sm text-muted">Last 30 days. Red means it needs someone&apos;s attention today.</p>
+          <OrgDashboard metrics={metrics} />
+        </section>
+      )}
 
       <section>
         <h2 className="mb-3 text-base font-semibold">Homes</h2>
@@ -58,6 +73,8 @@ export default async function OverviewPage() {
       <section className="card">
         <h2 className="text-base font-semibold">What&apos;s built so far</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
+          <li>Reg 44 visits whose recommendations become tracked actions; Reg 45 reviews that start from the system&apos;s own numbers; a cross-home dashboard for directors and the RI</li>
+          <li>Incidents with rule-generated follow-ups; home operations — staff files, supervision, training, medication, checks, money, policies</li>
           <li>Daily logs per child per shift, handovers, key-work sessions and the child&apos;s voice, all through the same review-and-lock lifecycle</li>
           <li>Child record to Schedule 3: placement, plan, risk assessments, chronology, documents</li>
           <li>Organisation → home → staff structure with eight roles and scoped visibility</li>
@@ -65,7 +82,7 @@ export default async function OverviewPage() {
           <li>Tamper-evident audit log: append-only at the database level and hash-chained</li>
           <li>Time-boxed access for inspectors and the Reg 44 independent person</li>
         </ul>
-        <p className="mt-3 text-sm text-muted">Next: incidents, missing episodes and physical interventions with automatic follow-ups.</p>
+        <p className="mt-3 text-sm text-muted">Next: the inspection window and SCCIF evidence pack.</p>
       </section>
     </div>
   );

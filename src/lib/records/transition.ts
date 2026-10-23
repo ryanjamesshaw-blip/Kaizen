@@ -1,13 +1,13 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { dailyLogs, incidents, keyworkSessions, placementPlans, riskAssessments } from "@/db/schema";
+import { dailyLogs, incidents, keyworkSessions, placementPlans, reg44Visits, reg45Reviews, riskAssessments } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { Forbidden } from "@/lib/auth/guard";
 import { requestMeta, type CurrentUser } from "@/lib/auth/session";
 import { canTransition, nextStatus, type Transition } from "./lifecycle";
 
-export type LifecycleTable = "risk_assessment" | "placement_plan" | "daily_log" | "keywork_session" | "incident";
+export type LifecycleTable = "risk_assessment" | "placement_plan" | "daily_log" | "keywork_session" | "incident" | "reg44_visit" | "reg45_review";
 
 const TABLES = {
   risk_assessment: riskAssessments,
@@ -15,6 +15,8 @@ const TABLES = {
   daily_log: dailyLogs,
   keywork_session: keyworkSessions,
   incident: incidents,
+  reg44_visit: reg44Visits,
+  reg45_review: reg45Reviews,
 } as const;
 
 /**

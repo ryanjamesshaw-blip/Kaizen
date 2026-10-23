@@ -787,6 +787,9 @@ export const followUpTasks = pgTable(
     homeId: uuid("home_id").notNull().references(() => homes.id),
     childId: uuid("child_id").references(() => children.id),
     incidentId: uuid("incident_id").references(() => incidents.id),
+    /** Non-incident sources: reg44_visit, reg45_review, manual */
+    sourceType: text("source_type"),
+    sourceId: uuid("source_id"),
     /** Rule key, e.g. "pi.childs_view", or "manual" */
     ruleKey: text("rule_key").notNull(),
     title: text("title").notNull(),
@@ -1069,3 +1072,83 @@ export type CheckResult = typeof checkResults.$inferSelect;
 export type MaintenanceItem = typeof maintenanceItems.$inferSelect;
 export type MoneyEntry = typeof moneyLedger.$inferSelect;
 export type HomeDocument = typeof homeDocuments.$inferSelect;
+
+
+// ===========================================================================
+// Slice 6 — Governance: Reg 44 independent person visits, Reg 45 quality of
+// care review. Actions from both land in follow_up_tasks (sourceType).
+// ===========================================================================
+
+export const reg44Visits = pgTable(
+  "reg44_visits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    visitorUserId: uuid("visitor_user_id").notNull().references(() => users.id),
+    visitedOn: timestamp("visited_on", { mode: "date" }).notNull(),
+    announced: boolean("announced").notNull().default(false),
+    childrenSpokenTo: integer("children_spoken_to"),
+    childrenPresent: integer("children_present"),
+    staffSpokenTo: text("staff_spoken_to"),
+    othersConsulted: text("others_consulted"), // social workers, parents, school
+    recordsReviewed: text("records_reviewed"),
+    // Reg 44(4): opinion on whether children are effectively safeguarded, and the conduct of the home
+    safeguardingOpinion: text("safeguarding_opinion"),
+    safeguardingEffective: boolean("safeguarding_effective"),
+    conductOpinion: text("conduct_opinion"),
+    conductPromotesWellbeing: boolean("conduct_promotes_wellbeing"),
+    childrensViews: text("childrens_views"),
+    environment: text("environment"),
+    followUpOnPrevious: text("follow_up_on_previous"),
+    recommendations: text("recommendations"),
+    reportIssuedOn: timestamp("report_issued_on", { mode: "date" }),
+    ofstedCopyOn: timestamp("ofsted_copy_on", { mode: "date" }),
+    managerResponse: text("manager_response"),
+    managerRespondedAt: timestamp("manager_responded_at", { withTimezone: true }),
+    managerRespondedBy: uuid("manager_responded_by").references(() => users.id),
+    supersedesId: uuid("supersedes_id"),
+    ...lifecycleColumns,
+  },
+  (t) => [index("reg44_home_date_idx").on(t.homeId, t.visitedOn)],
+);
+
+export const qsRatingEnum = pgEnum("qs_rating", ["strong", "adequate", "requires_improvement", "not_assessed"]);
+
+/** Assessment of one quality standard inside a Reg 45 review. */
+export type QualityStandardAssessment = {
+  regulation: number; // 6–14
+  rating: "strong" | "adequate" | "requires_improvement" | "not_assessed";
+  evidence: string;
+  actions: string;
+};
+
+export const reg45Reviews = pgTable(
+  "reg45_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    periodFrom: timestamp("period_from", { mode: "date" }).notNull(),
+    periodTo: timestamp("period_to", { mode: "date" }).notNull(),
+    /** Snapshot of system data for the period, captured when the review is created. */
+    dataSnapshot: jsonb("data_snapshot").$type<Record<string, unknown>>().notNull().default({}),
+    standards: jsonb("standards").$type<QualityStandardAssessment[]>().notNull().default([]),
+    summary: text("summary"),
+    strengths: text("strengths"),
+    areasForImprovement: text("areas_for_improvement"),
+    progressOnPreviousActions: text("progress_on_previous_actions"),
+    feedbackFromChildren: text("feedback_from_children"),
+    feedbackFromOthers: text("feedback_from_others"),
+    /** Reg 45(4): copy to Ofsted and placing authorities */
+    ofstedCopyOn: timestamp("ofsted_copy_on", { mode: "date" }),
+    riSignedAt: timestamp("ri_signed_at", { withTimezone: true }),
+    riSignedBy: uuid("ri_signed_by").references(() => users.id),
+    supersedesId: uuid("supersedes_id"),
+    ...lifecycleColumns,
+  },
+  (t) => [index("reg45_home_idx").on(t.homeId, t.periodTo)],
+);
+
+export type Reg44Visit = typeof reg44Visits.$inferSelect;
+export type Reg45Review = typeof reg45Reviews.$inferSelect;

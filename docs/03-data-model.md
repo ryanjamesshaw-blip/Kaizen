@@ -51,9 +51,12 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **money_ledger** — home petty cash (childId null) or child money, pence, receipt, witness
 - **home_documents** — Statement of Purpose, Children's Guide, policies; version, effective, review due, Ofsted notified, optional file, supersedes
 
-## Governance — slice 6
+## Governance — slice 6 (live)
 
-- **reg44_visit**, **reg45_review**, **action**, **inspection_grant**
+- **reg44_visits** — visitor, date, announced, children/staff/others, records reviewed, Reg 44(4) opinions with yes/no, children's views, environment, previous follow-up, recommendations, report issued, Ofsted copy, manager response; lifecycle columns
+- **reg45_reviews** — period, `dataSnapshot` jsonb (HomeMetrics), `standards` jsonb (rating/evidence/actions per Reg 6–14), narrative sections, Ofsted copy, RI signature; lifecycle columns
+- **follow_up_tasks** gained `sourceType` / `sourceId` so Reg 44 and Reg 45 actions share the tracker
+- inspection_grant: covered by time-boxed memberships (slice 1); export pack: slice 7
 
 ## Automation / AI — slices 8–9
 

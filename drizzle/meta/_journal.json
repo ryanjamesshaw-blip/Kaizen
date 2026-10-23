@@ -43,6 +43,13 @@
       "when": 1792707056153,
       "tag": "0005_home_operations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792714907529,
+      "tag": "0006_governance",
+      "breakpoints": true
     }
   ]
 }

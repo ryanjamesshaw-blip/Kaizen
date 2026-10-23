@@ -27,6 +27,8 @@ export function TaskList({ rows, canAct, showChild = false, isSenior = false, is
                 <div className="mt-0.5 text-xs text-muted">
                   {showChild && childName && <><Link href={`/children/${t.childId}`} className="hover:underline">{childName}</Link> · </>}
                   {t.incidentId && <><Link href={`/incidents/${t.incidentId}`} className="hover:underline">incident</Link> · </>}
+                  {t.sourceType === "reg44_visit" && t.sourceId && <><Link href={`/governance/reg44/${t.sourceId}`} className="hover:underline">Reg 44 visit</Link> · </>}
+                  {t.sourceType === "reg45_review" && t.sourceId && <><Link href={`/governance/reg45/${t.sourceId}`} className="hover:underline">Reg 45 review</Link> · </>}
                   {t.ownerRole ? ROLE_LABELS[t.ownerRole] : ownerName ?? "Unassigned"} · due {fmtDateTime(t.dueAt)}{overdue ? " · OVERDUE" : ""} · {t.regulation}
                   {!open && t.completionNote && <> · {t.completionNote}</>}
                 </div>

@@ -50,6 +50,7 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
     { href: `/homes/${home.id}/maintenance`, label: "Maintenance", status: "Log", bad: false },
     { href: `/homes/${home.id}/money`, label: "Petty cash", status: "Ledger", bad: false },
     { href: `/homes/${home.id}/documents`, label: "Statement of Purpose & policies", status: sopOk ? "SoP on file" : "No Statement of Purpose", bad: !sopOk },
+    { href: `/governance?home=${home.id}`, label: "Governance (Reg 44 / 45)", status: "Visits and reviews", bad: false },
   ];
   const staff = staffAll.filter((s) => s.homeId === home.id);
   const overdue = risks.filter((r) => isOverdue(r.reviewDueOn) && r.status !== "locked");
