@@ -47,8 +47,8 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 | 34 | Child protection, bullying, missing policies | **Slice 5:** policy library with versions and review dates (overdue flagged). **Slice 4:** missing episode record — police informed, return, welcome-back conversation, independent return interview within 72h; LADO referral task for allegations |
 | 35 | Behaviour management policies and records | **Slice 4:** `physical_interventions` table holds every Reg 35(3) field; manager cannot sign until the child's view is recorded; register = incidents filtered by type |
 | 36 | Children's case records (Schedule 3) | **Slice 2:** child record with Schedule 3 field groups (paras 1–6, 8–13, 16–26); contacts as structured people; chronology; documents (paras 17–20). Para 7 (money) slice 5; para 15 (measures of control) slice 4. Completeness score: slice 8 |
-| 37 | Other records (Schedule 4) | Register of children, staff register, rota, residents/workers, visitors book, fire drills, accounts |
-| 38 | Storage of records | Encryption, retention (child records to 75th birthday), access control, backup. **Slice 1:** append-only hash-chained `audit_events`, DB-backed sessions, scoped access |
+| 37 | Other records (Schedule 4) | **Slice 7:** register of children (para 1), staff register (para 2), visitors book (para 5), fire drills (para 6) all in the evidence pack; accounts via money ledger (para 7). Rota (para 3): slice 8 |
+| 38 | Storage of records | Encryption, retention (child records to 75th birthday), access control, backup. **Slice 1:** append-only hash-chained `audit_events`, DB-backed sessions, scoped access. **Slice 7:** per-account access trail (what an inspector or departed staff member opened) |
 | 39 | Complaints and representations | **Slice 4:** complaint incident type with acknowledge (3d) and respond (28d) tasks. Full stages: slice 6 |
 | 40 | Notification of a serious event | **Slice 4:** notification flags pre-set by type/severity, manager confirms; `notifications` table records what was sent, when, by whom, reference; required-but-missing shown in red; rules create Ofsted tasks for missing, safeguarding, allegations, police involvement, serious accidents |
 | 41 | Admissions and discharges | **Slice 2:** placement opened at admission and closed at discharge with destination (Sch 3 para 6); `admissionNotifiedAt` / `dischargeNotifiedAt` columns ready for the slice 8 rule |
@@ -75,7 +75,7 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 | Need | Feature |
 |------|---------|
 | Inspector reads records on site or remotely | **Slice 1:** `inspector` role — read-only, home-scoped, time-boxed grant; every read audited. **Slice 2:** managers grant and revoke it from Staff & access; end date mandatory |
-| SCCIF evidence pack | Slice 7 export |
+| SCCIF evidence pack | **Slice 7:** printable evidence pack per home, organised by the three SCCIF judgement areas, drawn live from the records (registers, restraint register with gaps in red, missing episodes, notifications, risk assessments, staff fitness, Reg 44/45, fire checks); generation is audited as an export |
 
 ## Schedule 3 → child record field groups
 

@@ -1152,3 +1152,28 @@ export const reg45Reviews = pgTable(
 
 export type Reg44Visit = typeof reg44Visits.$inferSelect;
 export type Reg45Review = typeof reg45Reviews.$inferSelect;
+
+// ===========================================================================
+// Slice 7 — Inspection window: Schedule 4 para 5 visitors book. Everything
+// else the inspector needs already exists; this slice assembles it.
+// ===========================================================================
+
+export const visitorsLog = pgTable(
+  "visitors_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    visitorName: text("visitor_name").notNull(),
+    organisation: text("organisation"),
+    purpose: text("purpose").notNull(),
+    arrivedAt: timestamp("arrived_at", { withTimezone: true }).notNull(),
+    leftAt: timestamp("left_at", { withTimezone: true }),
+    idChecked: boolean("id_checked").notNull().default(false),
+    signedInBy: uuid("signed_in_by").notNull().references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("visitors_home_idx").on(t.homeId, t.arrivedAt)],
+);
+
+export type Visitor = typeof visitorsLog.$inferSelect;

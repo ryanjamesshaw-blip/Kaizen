@@ -46,7 +46,8 @@ export default async function StaffPage() {
                   <td>{s.homeName ?? <span className="text-muted">All homes</span>}</td>
                   <td>{s.revokedAt ? <span className="pill">Revoked {fmtDate(s.revokedAt)}</span> : expired ? <span className="pill">Expired</span> : s.validTo ? <span className="pill">Until {fmtDate(s.validTo)}</span> : <span className="pill">Ongoing</span>}</td>
                   <td className="text-muted">{s.lastLoginAt ? fmtDateTime(s.lastLoginAt) : "Never"}</td>
-                  <td>
+                  <td className="space-y-1">
+                    {can(user.grants, "audit:read", { organisationId: org.id, homeId: s.homeId }) && <Link href={`/staff/${s.userId}/access`} className="text-xs text-muted hover:underline">Access trail</Link>}
                     {mayRevoke && (
                       <form action={revokeAccess.bind(null, s.membershipId)} className="flex items-center gap-1">
                         <input name="reason" placeholder="Reason" className="input py-1 text-xs" aria-label="Reason for revoking" />

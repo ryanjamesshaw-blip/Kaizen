@@ -44,3 +44,12 @@ body {
 .table { @apply w-full text-sm; }
 .table th { @apply border-b border-line py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wide text-muted; }
 .table td { @apply border-b border-line py-2 pr-4 align-top; }
+
+@media print {
+  header, footer, nav, .print\:hidden { display: none !important; }
+  body { background: #fff; }
+  .card { border: 0; padding: 0; box-shadow: none; }
+  main { max-width: none !important; padding: 0 !important; }
+  table { font-size: 10px; }
+  a { color: inherit; text-decoration: none; }
+}

@@ -56,7 +56,12 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **reg44_visits** — visitor, date, announced, children/staff/others, records reviewed, Reg 44(4) opinions with yes/no, children's views, environment, previous follow-up, recommendations, report issued, Ofsted copy, manager response; lifecycle columns
 - **reg45_reviews** — period, `dataSnapshot` jsonb (HomeMetrics), `standards` jsonb (rating/evidence/actions per Reg 6–14), narrative sections, Ofsted copy, RI signature; lifecycle columns
 - **follow_up_tasks** gained `sourceType` / `sourceId` so Reg 44 and Reg 45 actions share the tracker
-- inspection_grant: covered by time-boxed memberships (slice 1); export pack: slice 7
+- inspection_grant: covered by time-boxed memberships (slice 1)
+
+## Inspection — slice 7 (live)
+
+- **visitors_log** — name, organisation, purpose, arrived/left, ID checked, signed in by
+- Evidence pack is assembled at request time by `lib/inspection/pack.ts`; nothing is stored, the export is audited
 
 ## Automation / AI — slices 8–9
 
