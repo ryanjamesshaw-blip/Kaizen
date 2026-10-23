@@ -32,6 +32,7 @@ Demo logins (password for all: `Kaizen-demo-1`):
 ## Status
 
 Slice 1 (foundation) — done: tenancy, roles, sessions, tamper-evident audit log.
+Slice 8 (audit engine) — done: 19 continuous rules that create, resolve and escalate follow-ups on their own; compliance score per home; `npm run engine` or POST /api/engine/run on a schedule.
 Slice 7 (inspection) — done: inspector landing page, printable SCCIF evidence pack, visitors book, per-account access trail.
 Slice 6 (governance) — done: Reg 44 visits with recommendations as tracked actions, Reg 45 reviews built from a system data snapshot with RI sign-off, cross-home dashboard.
 Slice 5 (home operations) — done: Schedule 2 staff files, supervision and training, medication/MAR, scheduled safety checks, maintenance, money ledgers, Statement of Purpose and policies.
@@ -39,5 +40,5 @@ Slice 4 (incidents) — done: ten incident types, Reg 35 restraint record, missi
 Slice 3 (daily recording) — done: shift board, daily logs with draft recovery, handovers, key-work, child's voice.
 Slice 2 (child record) — done: Schedule 3 record, placements, placement plans and risk assessments with a draft → submitted → reviewed → locked → amend lifecycle, chronology, documents, access management.
 
-`npx tsx scripts/verify-audit.mts` walks the audit hash chain from the shell.
+`npx tsx scripts/verify-audit.mts` walks the audit hash chain from the shell. `npm run engine` runs the audit engine for every home (schedule it hourly in production, or call `POST /api/engine/run` with `Authorization: Bearer $ENGINE_SECRET`).
 See `docs/01-build-plan.md` for the rest.

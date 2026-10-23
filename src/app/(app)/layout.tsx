@@ -12,6 +12,7 @@ const NAV = [
   { href: "/tasks", label: "Follow-ups" },
   { href: "/governance", label: "Governance" },
   { href: "/inspection", label: "Inspection" },
+  { href: "/rules", label: "Compliance" },
   { href: "/staff", label: "Staff & access" },
   { href: "/audit", label: "Audit log" },
 ];

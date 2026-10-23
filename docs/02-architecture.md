@@ -48,8 +48,10 @@ Care workers can edit their own drafts. Once submitted, only a manager can retur
 
 ## Automation engine (slice 8)
 
-- Rules are declarative: trigger (event or schedule) → condition → action (create task, notify, escalate, block).
-- Every rule carries the regulation it serves so the compliance dashboard can group by it.
+- Two kinds of rule, both declarative and both citing a regulation: event rules fire when an incident is submitted (`lib/rules/incidents.ts`); continuous rules run on a schedule (`lib/rules/engine.ts` + `lib/engine/detectors.ts`).
+- The engine reconciles findings against engine-owned tasks by `(home, rule, subjectKey)`: new finding → task; finding gone → task auto-resolved; task overdue beyond the rule's window → one escalation task for the senior role. Running twice changes nothing (`reconcile()` is pure and tested).
+- Compliance score = 100 − weighted, per-rule-capped deductions for open findings.
+- Triggers: `npm run engine` (CLI), `POST /api/engine/run` with `ENGINE_SECRET` (hosting cron, hourly), and "Run checks now" on the compliance page.
 
 ## AI boundary (slice 9)
 

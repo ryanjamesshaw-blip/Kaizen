@@ -11,7 +11,7 @@ Kaizen: case recording and governance for children's homes in England. Built to 
 5. AI output lands in `ai_draft` with status `draft`. AI never submits, locks or notifies.
 6. No secrets in the repo. `.env.example` lists every variable.
 7. Every feature cites its regulation in `docs/04-regulation-map.md`; add a row if one is missing.
-8. Automation rules live in `src/lib/rules/` as declarative objects with a `regulation` field. No ad-hoc cron logic elsewhere.
+8. Automation rules live in `src/lib/rules/` as declarative objects with a `regulation` field; detectors in `src/lib/engine/detectors.ts`. No ad-hoc cron logic elsewhere. Engine tasks are identified by `(homeId, ruleKey, subjectKey)` — keep subject keys stable.
 
 ## Stack
 Next.js 16 App Router (`cacheComponents` off — everything is per-user), TypeScript strict, Tailwind 4, Drizzle ORM + PostgreSQL 16, custom DB-backed sessions (`lib/auth`), Zod, Vitest, Playwright.
@@ -32,6 +32,7 @@ Prisma was dropped because its engine binaries cannot be downloaded in restricte
 npm run dev          # local
 npm run db:reset     # drop + migrate + seed (local only)
 npm run db:generate  # new migration from schema changes
+npm run engine       # run the audit engine for every home
 npm run test         # vitest
 npm run typecheck
 npm run lint

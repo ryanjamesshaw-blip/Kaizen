@@ -11,6 +11,8 @@ import { LevelPill, StatusPill, fmtDate } from "@/components/record-status";
 import { homeIncidentSummary } from "@/lib/incidents/queries";
 import { checksBoard, staffCompliance, homeDocumentsList } from "@/lib/operations/queries";
 import { nowMs } from "@/lib/time";
+import { latestRun } from "@/lib/engine/run";
+import { scoreBand } from "@/lib/rules/engine";
 
 export default async function HomePage({ params }: { params: Promise<{ homeId: string }> }) {
   const { homeId } = await params;
@@ -37,7 +39,8 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
     homeIncidentSummary(home.id),
   ]);
   const now = new Date(nowMs());
-  const [checks, team, hdocs] = await Promise.all([checksBoard(home.id, now), staffCompliance(home.organisationId, home.id, now), homeDocumentsList(home.id)]);
+  const [checks, team, hdocs, run] = await Promise.all([checksBoard(home.id, now), staffCompliance(home.organisationId, home.id, now), homeDocumentsList(home.id), latestRun(home.id)]);
+  const band = run?.score != null ? scoreBand(run.score) : null;
   const checksOverdue = checks.filter((c) => c.status === "overdue").length;
   const supOverdue = team.filter((t) => t.supervisionStatus === "overdue" || t.supervisionStatus === "never").length;
   const sch2 = team.filter((t) => t.schedule2Missing.length > 0).length;
@@ -71,6 +74,7 @@ export default async function HomePage({ params }: { params: Promise<{ homeId: s
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
+        <Link href="/rules" className="card hover:border-brand"><div className="text-xs uppercase text-muted">Compliance score</div><div className={`text-xl font-semibold ${band?.tone === "ok" ? "text-ok" : band?.tone === "warn" ? "text-amber-700" : band ? "text-danger" : "text-muted"}`}>{run?.score ?? "—"}{band ? <span className="text-base font-normal"> · {band.label}</span> : <span className="text-base font-normal text-muted"> · not yet run</span>}</div></Link>
         <Link href={`/incidents?home=${home.id}`} className="card hover:border-brand"><div className="text-xs uppercase text-muted">Incidents, last 30 days</div><div className="text-xl font-semibold">{inc.last30}<span className="text-base font-normal text-muted"> · {inc.pi30} restraint · {inc.missing30} missing</span></div></Link>
         <Link href="/tasks" className="card hover:border-brand"><div className="text-xs uppercase text-muted">Open follow-ups</div><div className={`text-xl font-semibold ${inc.tasksOverdue ? "text-danger" : ""}`}>{inc.tasksOpen}{inc.tasksOverdue ? <span className="text-base font-normal"> · {inc.tasksOverdue} overdue</span> : null}</div></Link>
         <div className="card"><div className="text-xs uppercase text-muted">Capacity</div><div className="text-xl font-semibold">{home.capacity ?? "—"}</div></div>

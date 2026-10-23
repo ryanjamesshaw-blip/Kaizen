@@ -787,9 +787,12 @@ export const followUpTasks = pgTable(
     homeId: uuid("home_id").notNull().references(() => homes.id),
     childId: uuid("child_id").references(() => children.id),
     incidentId: uuid("incident_id").references(() => incidents.id),
-    /** Non-incident sources: reg44_visit, reg45_review, manual */
+    /** Non-incident sources: reg44_visit, reg45_review, manual, engine */
     sourceType: text("source_type"),
     sourceId: uuid("source_id"),
+    /** For engine-created tasks: what the finding is about (e.g. risk_assessment:<id>). Identity = (homeId, ruleKey, subjectKey). */
+    subjectKey: text("subject_key"),
+    escalatedAt: timestamp("escalated_at", { withTimezone: true }),
     /** Rule key, e.g. "pi.childs_view", or "manual" */
     ruleKey: text("rule_key").notNull(),
     title: text("title").notNull(),
@@ -805,7 +808,7 @@ export const followUpTasks = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     createdBy: uuid("created_by").references(() => users.id),
   },
-  (t) => [index("tasks_home_status_idx").on(t.homeId, t.status, t.dueAt), index("tasks_incident_idx").on(t.incidentId)],
+  (t) => [index("tasks_home_status_idx").on(t.homeId, t.status, t.dueAt), index("tasks_incident_idx").on(t.incidentId), index("tasks_subject_idx").on(t.homeId, t.ruleKey, t.subjectKey)],
 );
 
 export type Incident = typeof incidents.$inferSelect;
@@ -1177,3 +1180,26 @@ export const visitorsLog = pgTable(
 );
 
 export type Visitor = typeof visitorsLog.$inferSelect;
+
+
+// ===========================================================================
+// Slice 8 — Audit engine runs.
+// ===========================================================================
+
+export const ruleRuns = pgTable(
+  "rule_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organisationId: uuid("organisation_id").notNull().references(() => organisations.id),
+    homeId: uuid("home_id").notNull().references(() => homes.id),
+    ranAt: timestamp("ran_at", { withTimezone: true }).notNull().defaultNow(),
+    triggeredBy: uuid("triggered_by").references(() => users.id),
+    /** { ruleKey: { findings, created, resolved, escalated } } */
+    summary: jsonb("summary").$type<Record<string, { findings: number; created: number; resolved: number; escalated: number }>>().notNull().default({}),
+    score: integer("score"),
+    durationMs: integer("duration_ms"),
+  },
+  (t) => [index("rule_runs_home_idx").on(t.homeId, t.ranAt)],
+);
+
+export type RuleRun = typeof ruleRuns.$inferSelect;

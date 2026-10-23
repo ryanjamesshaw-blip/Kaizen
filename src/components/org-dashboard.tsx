@@ -5,6 +5,7 @@ import { fmtDate } from "@/components/record-status";
 /** Cross-home view for directors and the RI: one row per home, red where attention is needed. */
 export function OrgDashboard({ metrics }: { metrics: HomeMetrics[] }) {
   const cols: Array<{ label: string; get: (m: HomeMetrics) => { v: string; bad: boolean }; href?: (m: HomeMetrics) => string }> = [
+    { label: "Score", get: (m) => ({ v: m.score == null ? "—" : String(m.score), bad: m.score != null && m.score < 65 }), href: (m) => `/rules?home=${m.homeId}` },
     { label: "Children", get: (m) => ({ v: `${m.children.placed}${m.children.capacity ? ` / ${m.children.capacity}` : ""}`, bad: false }), href: (m) => `/homes/${m.homeId}` },
     { label: "Incidents 30d", get: (m) => ({ v: `${m.incidents.total}${m.incidents.restraint ? ` · ${m.incidents.restraint} PI` : ""}${m.incidents.missing ? ` · ${m.incidents.missing} missing` : ""}`, bad: m.incidents.highOrCritical > 0 }), href: (m) => `/incidents?home=${m.homeId}` },
     { label: "Follow-ups", get: (m) => ({ v: m.followUps.overdue ? `${m.followUps.overdue} overdue` : `${m.followUps.open} open`, bad: m.followUps.overdue > 0 }), href: () => `/tasks` },

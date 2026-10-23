@@ -6,6 +6,7 @@ import { checksBoard, staffCompliance, homeDocumentsList } from "@/lib/operation
 import { missingLogs } from "@/lib/daily/queries";
 import { reg44DueOn, reg45DueOn, cadenceStatus } from "@/lib/rules/governance";
 import { isOverdue } from "@/lib/records/lifecycle";
+import { latestRun } from "@/lib/engine/run";
 
 export type HomeMetrics = {
   homeId: string;
@@ -19,6 +20,7 @@ export type HomeMetrics = {
   medication: { refusedOrMissed: number; errors: number };
   staff: { careStaff: number; supervisionOverdue: number; schedule2Incomplete: number; trainingExpired: number; level3Overdue: number };
   checks: { total: number; overdue: number; failedLast: number };
+  score: number | null;
   governance: { lastReg44: Date | null; reg44Due: Date; reg44Status: "ok" | "due_soon" | "overdue"; reg44InPeriod: number; lastReg45To: Date | null; reg45Due: Date; reg45Status: "ok" | "due_soon" | "overdue"; sopOnFile: boolean; sopNotified: boolean; policiesOverdue: number };
 };
 
@@ -49,6 +51,7 @@ export async function homeMetrics(homeId: string, from: Date, to: Date, now = ne
     homeDocumentsList(homeId),
     missingLogs(homeId, 7),
   ]);
+  const run = await latestRun(homeId);
 
   const activeKids = kids.filter((k) => !k.archivedAt);
   const currentRisks = risks.filter((r) => activeKids.some((k) => k.id === r.childId));
@@ -60,7 +63,7 @@ export async function homeMetrics(homeId: string, from: Date, to: Date, now = ne
   const sop = currentDocs.find((d) => d.d.kind === "statement_of_purpose");
 
   return {
-    homeId, homeName: home.name, period: { from, to },
+    homeId, homeName: home.name, period: { from, to }, score: run?.score ?? null,
     children: {
       placed: activeKids.length,
       admitted: cnt(pls, (p) => p.admittedOn >= from && p.admittedOn <= to),

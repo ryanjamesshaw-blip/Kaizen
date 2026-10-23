@@ -63,9 +63,15 @@ All child/home tables carry `organisation_id`, `home_id`, `created_at`, `created
 - **visitors_log** — name, organisation, purpose, arrived/left, ID checked, signed in by
 - Evidence pack is assembled at request time by `lib/inspection/pack.ts`; nothing is stored, the export is audited
 
-## Automation / AI — slices 8–9
+## Automation — slice 8 (live)
 
-- **rule**, **rule_run**, **ai_draft**
+- Rules are code, not rows: `src/lib/rules/engine.ts` (19 continuous rules with owner, escalation, weight, cap) and `src/lib/rules/incidents.ts` (25 event rules)
+- **follow_up_tasks** gained `subjectKey` (finding identity) and `escalatedAt`; engine tasks have `sourceType = 'engine'`
+- **rule_runs** — per home per run: summary jsonb per rule (findings/created/resolved/escalated), score, duration
+
+## AI — slice 9
+
+- **ai_draft**
 
 ## Retention
 

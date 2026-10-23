@@ -13,15 +13,15 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 | 10 | Health and well-being | Health section (Sch 3 paras 21–26), MAR, health appointments, risk assessments. **Slice 5:** medication register and MAR; allergies shown on the medication page |
 | 11 | Positive relationships | Key-work, contact records (Sch 3 para 16), behaviour support plans. **Slice 3:** key-work sessions with actions agreed and next date |
 | 12 | Protection of children | Risk assessments, safeguarding incidents, missing episodes, Reg 40 notifications, policies (Reg 34). **Slice 2:** versioned risk assessments with review dates; overdue reviews surfaced on the home page. **Slice 4:** incidents, safeguarding concerns, missing episodes; rules create referral/review tasks |
-| 13 | Leadership and management | **Slice 6:** cross-home dashboard for directors and the RI; organisation-wide action tracker (incidents, Reg 44, Reg 45). **Slice 1:** organisation → home → staff structure, scoped roles, audit log. **Slice 4:** manager review of every incident; follow-up tasks with owners, deadlines and regulation; RI informed on critical events |
+| 13 | Leadership and management | **Slice 8:** audit engine — 19 continuous rules, idempotent, self-resolving, escalating; compliance score per home; `incident.unreviewed` and `logs.unreviewed` rules. **Slice 6:** cross-home dashboard for directors and the RI; organisation-wide action tracker (incidents, Reg 44, Reg 45). **Slice 1:** organisation → home → staff structure, scoped roles, audit log. **Slice 4:** manager review of every incident; follow-up tasks with owners, deadlines and regulation; RI informed on critical events |
 | 14 | Care planning | Placement plan (Regs 17/18), LA care plan copies (Sch 3 para 19), review outcomes (Sch 3 para 20). **Slice 2:** placement plan with lifecycle; documents of type care plan / review record |
 
 ## Conduct of the home (Regs 16–25)
 
 | Reg | Subject | Feature |
 |-----|---------|---------|
-| 16 | Statement of purpose (Schedule 1) | **Slice 5:** versioned SoP and Children's Guide with effective date, review date, Ofsted-notified date; missing SoP or un-notified version flagged. Schedule 1 section template and Reg 49 rule: slice 8 |
-| 17 / 18 | Placement plans | **Slice 2:** placement plan entity, versioned, draft → submitted → reviewed → locked → amend; child page warns when none exists. Rule for RM action: slice 8 |
+| 16 | Statement of purpose (Schedule 1) | **Slice 5:** versioned SoP and Children's Guide with effective date, review date, Ofsted-notified date; missing SoP or un-notified version flagged. **Slice 8:** `sop.missing` rule (missing or not notified). Schedule 1 template: later |
+| 17 / 18 | Placement plans | **Slice 2:** placement plan entity, versioned, lifecycle; child page warns when none exists. **Slice 8:** engine rule `plan.missing` (RM task after 5 days, escalates to RI) and `plan.review_overdue` |
 | 19 | Behaviour management and discipline | Behaviour support plan per child; measures of control recorded (Sch 3 para 15) |
 | 20 | Restraint and deprivation of liberty | **Slice 4:** physical intervention record with Reg 35(3) fields; rules create child's view (24h), staff debrief (24h), manager sign-off (48h), risk review (5d), medical check if injured |
 | 21 | Privacy and access | Record of searches / room checks; child access to own record |
@@ -37,7 +37,7 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 | 27 / 28 | Manager appointment and fitness | Home record: RM, qualification, date appointed, Ofsted registration. **Slice 1:** home record with URN, RM membership |
 | 29 | CPD of RP and RI | Training record for RI and directors |
 | 31 | Staffing | Rota (Sch 4 para 3) and ratios check against SoP. **Slice 3:** shift handover with staff on duty and received-by acknowledgement |
-| 32 | Fitness of workers (Schedule 2) | **Slice 5:** staff record with every Schedule 2 item dated; missing items listed; DBS renew after 3 years unless update service; Level 3 within two years of start tracked. Rule blocking shifts: slice 8 |
+| 32 | Fitness of workers (Schedule 2) | **Slice 5:** staff record with every Schedule 2 item dated; missing items listed; DBS renew after 3 years unless update service; Level 3 within two years of start tracked. **Slice 8:** `schedule2.incomplete` and `staff.level3_overdue` engine rules |
 | 33 | Employment of staff | **Slice 5:** supervision and appraisal records with staff and supervisor signature; monthly in probation then six-weekly; training records with expiry; mandatory course list; induction date |
 
 ## Policies, records, complaints, notifications (Regs 34–42)
@@ -46,11 +46,11 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 |-----|---------|---------|
 | 34 | Child protection, bullying, missing policies | **Slice 5:** policy library with versions and review dates (overdue flagged). **Slice 4:** missing episode record — police informed, return, welcome-back conversation, independent return interview within 72h; LADO referral task for allegations |
 | 35 | Behaviour management policies and records | **Slice 4:** `physical_interventions` table holds every Reg 35(3) field; manager cannot sign until the child's view is recorded; register = incidents filtered by type |
-| 36 | Children's case records (Schedule 3) | **Slice 2:** child record with Schedule 3 field groups (paras 1–6, 8–13, 16–26); contacts as structured people; chronology; documents (paras 17–20). Para 7 (money) slice 5; para 15 (measures of control) slice 4. Completeness score: slice 8 |
+| 36 | Children's case records (Schedule 3) | **Slice 8:** `logs.missing` and `logs.unreviewed` rules. **Slice 2:** child record with Schedule 3 field groups (paras 1–6, 8–13, 16–26); contacts as structured people; chronology; documents (paras 17–20). Para 7 (money) slice 5; para 15 (measures of control) slice 4. Completeness score: compliance score per home (slice 8) |
 | 37 | Other records (Schedule 4) | **Slice 7:** register of children (para 1), staff register (para 2), visitors book (para 5), fire drills (para 6) all in the evidence pack; accounts via money ledger (para 7). Rota (para 3): slice 8 |
 | 38 | Storage of records | Encryption, retention (child records to 75th birthday), access control, backup. **Slice 1:** append-only hash-chained `audit_events`, DB-backed sessions, scoped access. **Slice 7:** per-account access trail (what an inspector or departed staff member opened) |
 | 39 | Complaints and representations | **Slice 4:** complaint incident type with acknowledge (3d) and respond (28d) tasks. Full stages: slice 6 |
-| 40 | Notification of a serious event | **Slice 4:** notification flags pre-set by type/severity, manager confirms; `notifications` table records what was sent, when, by whom, reference; required-but-missing shown in red; rules create Ofsted tasks for missing, safeguarding, allegations, police involvement, serious accidents |
+| 40 | Notification of a serious event | **Slice 4:** notification flags pre-set by type/severity, manager confirms; `notifications` table records what was sent, when, by whom, reference; required-but-missing shown in red; rules create Ofsted tasks for missing, safeguarding, allegations, police involvement, serious accidents. **Slice 8:** `notification.unsent` rule — flagged but unsent after 24h → RM, escalates to RI after 2 days |
 | 41 | Admissions and discharges | **Slice 2:** placement opened at admission and closed at discharge with destination (Sch 3 para 6); `admissionNotifiedAt` / `dischargeNotifiedAt` columns ready for the slice 8 rule |
 | 42 | Notification of offences | Staff record flag → notification task |
 
@@ -58,9 +58,9 @@ Source: The Children's Homes (England) Regulations 2015 (SI 2015/541), verified 
 
 | Reg | Subject | Feature |
 |-----|---------|---------|
-| 43 / 44 | Independent person visits and reports | **Slice 6:** visit report with Reg 44(4) opinions (safeguarding; conduct promotes wellbeing), children/staff spoken to, recommendations; submitting turns each recommendation into a tracked action plus manager-response (Reg 44(6)) and Ofsted-copy (Reg 44(7)(c)) tasks; monthly cadence tracked and shown overdue on the dashboard. **Slice 1:** `independent_visitor` role, time-boxed |
-| 45 | Review of quality of care | **Slice 6:** six-monthly review created with a data snapshot from the system (incidents, restraint, missing, follow-ups, logs, key-work, voice, medication, supervision, Sch 2, training, checks, Reg 44); rating + evidence + actions per quality standard (Regs 6–14); actions become tracked; RI signs and locks; Reg 45(4) copy date. AI draft: slice 9 |
-| 46 | Review of premises | **Slice 5:** maintenance log with urgent/safety flags; gas, EICR, PAT, legionella and window-restrictor checks on the schedule. Annual review task: slice 8 |
+| 43 / 44 | Independent person visits and reports | **Slice 6:** visit report with Reg 44(4) opinions (safeguarding; conduct promotes wellbeing), children/staff spoken to, recommendations; submitting turns each recommendation into a tracked action plus manager-response (Reg 44(6)) and Ofsted-copy (Reg 44(7)(c)) tasks; monthly cadence tracked and shown overdue on the dashboard. **Slice 8:** `reg44.overdue` rule → RI task. **Slice 1:** `independent_visitor` role, time-boxed |
+| 45 | Review of quality of care | **Slice 6:** six-monthly review created with a data snapshot from the system (incidents, restraint, missing, follow-ups, logs, key-work, voice, medication, supervision, Sch 2, training, checks, Reg 44); rating + evidence + actions per quality standard (Regs 6–14); actions become tracked; RI signs and locks; Reg 45(4) copy date. **Slice 8:** `reg45.due` rule. AI draft: slice 9 |
+| 46 | Review of premises | **Slice 5:** maintenance log with urgent/safety flags; gas, EICR, PAT, legionella and window-restrictor checks on the schedule. **Slice 8:** `checks.overdue` rule with escalation |
 | 47 | Financial position | **Slice 5:** petty cash ledger (receipts flagged when missing, witness) and per-child money ledger (Sch 3 para 7) |
 
 ## Part 7

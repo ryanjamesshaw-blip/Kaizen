@@ -57,6 +57,13 @@
       "when": 1792722575397,
       "tag": "0007_visitors",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792725322821,
+      "tag": "0008_audit_engine",
+      "breakpoints": true
     }
   ]
 }
